@@ -138,6 +138,10 @@ button { font-family:inherit; }
 .close-x:hover { background:rgba(255,80,80,.2); border-color:rgba(255,80,80,.5); color:var(--danger); }
 .close-x:active { transform:scale(.9); }
 
+/* [NOME FIXO] Modal sem fechar: não permite fechar até salvar */
+#modalName.locked .close-x { display: none; }
+#modalName.locked { pointer-events: auto; }
+
 .bank { align-self:center; font-size:13px; font-weight:700; color:var(--muted); padding:6px 14px; border-radius:999px; background:rgba(255,212,42,.08); }
 .bank b { color:var(--accent); font-size:15px; margin-left:4px; font-variant-numeric:tabular-nums; }
 #shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
@@ -277,21 +281,24 @@ input::placeholder { color:rgba(255,255,255,.4); }
       <div id="profileView" class="form" style="display:none">
         <h1 class="ttl">Minha conta</h1>
         <p class="acc-email" id="profileEmail">email@exemplo.com</p>
+        <!-- [NOME FIXO] Nome permanente em modo leitura -->
+        <p class="note" id="profileName" style="font-size:16px;color:#ffd42a;font-weight:900;letter-spacing:1px"></p>
         <p class="note">Seu progresso e ranking estão salvos nesta conta.</p>
-        <button class="primary" id="changeNameBtn">Mudar nome</button>
         <button class="ghost" id="syncNowBtn">Sincronizar agora</button>
         <button class="ghost danger" id="logoutBtn">Sair da conta</button>
       </div>
     </div>
   </div>
 
+  <!-- [NOME FIXO] Modal obrigatório de definição de nome (1x só) -->
   <div class="modal" id="modalName">
     <div class="menu-card">
-      <button class="close-x" data-close="modalName" aria-label="Fechar">&times;</button>
-      <h1 class="ttl">Seu nome</h1>
-      <p class="note">Aparecerá no ranking (máx. 12 caracteres)</p>
-      <input id="nameInput" maxlength="12" placeholder="Jogador">
-      <button class="primary" id="nameSave">SALVAR</button>
+      <button class="close-x" data-close="modalName" aria-label="Fechar" style="display:none">&times;</button>
+      <h1 class="ttl">Escolha seu nome</h1>
+      <p class="note" style="color:#ffd42a;font-weight:900;letter-spacing:1px;font-size:14px">ATENÇÃO: NÃO PODERÁ SER TROCADO DEPOIS</p>
+      <p class="note">Este será seu nome permanente no ranking (máx. 12 caracteres).</p>
+      <input id="nameInput" maxlength="12" placeholder="Jogador" autocomplete="off">
+      <button class="primary" id="nameSave">CONFIRMAR PARA SEMPRE</button>
     </div>
   </div>
 </div>
@@ -395,15 +402,27 @@ try {
         const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 10) : [];
 
         const ref = firestore.doc(db, 'users', auth.currentUser.uid);
-        await firestore.setDoc(ref, {
+        // [NOME FIXO] Lê o perfil para saber se o nome já existe (imutável)
+        let existingName = '';
+        try {
+          const snap = await firestore.getDoc(ref);
+          if (snap.exists()) existingName = String(snap.data().playerName || '');
+        } catch(_) {}
+
+        const payload = {
           owned: safeOwned,
           bank: safeBank,
           charId: String(data.charId || 'zumbi'),
           recordMs: safeRecord,
-          playerName: String(data.playerName || '').slice(0, 12),
           email: auth.currentUser.email,
           updatedAt: firestore.serverTimestamp()
-        }, { merge: true });
+        };
+        // [NOME FIXO] Só envia playerName se ainda não existir no perfil
+        if (!existingName) {
+          payload.playerName = String(data.playerName || '').slice(0, 12);
+        }
+
+        await firestore.setDoc(ref, payload, { merge: true });
         return true;
       } catch(e) { console.error('[Firebase] saveProfile:', e); return false; }
     },
@@ -426,18 +445,28 @@ try {
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
         const scoreSnap = await firestore.getDoc(scoreRef);
         const oldScore = scoreSnap.exists() ? (scoreSnap.data().score || 0) : 0;
+        const oldName = scoreSnap.exists() ? String(scoreSnap.data().name || '') : '';
         const finalScore = Math.max(safeScore, oldScore);
+        // [NOME FIXO] Se já existir nome no score, mantém o antigo (imutável)
+        const finalName = oldName || String(name || 'Anônimo').slice(0, 12);
 
         await firestore.setDoc(scoreRef, {
-          name: String(name || 'Anônimo').slice(0, 12),
+          name: finalName,
           score: Math.floor(finalScore),
           charId: String(charId || 'zumbi'),
           ts: firestore.serverTimestamp()
         });
 
         const profileRef = firestore.doc(db, 'users', auth.currentUser.uid);
+        let existingProfileName = '';
+        try {
+          const profSnap = await firestore.getDoc(profileRef);
+          if (profSnap.exists()) existingProfileName = String(profSnap.data().playerName || '');
+        } catch(_) {}
+
         const updates = { recordMs: Math.floor(Math.max(safeRecord, oldScore, safeScore)), updatedAt: firestore.serverTimestamp() };
-        if (name) updates.playerName = String(name).slice(0, 12);
+        // [NOME FIXO] Só define playerName se o perfil ainda não tiver
+        if (!existingProfileName && name) updates.playerName = String(name).slice(0, 12);
         if (charId) updates.charId = String(charId);
         await firestore.setDoc(profileRef, updates, { merge: true });
         return true;
@@ -1547,7 +1576,7 @@ const internalOnHit = function(front, solid){
 
 const internalCheckCollisions = function(pz0, px0){
   const px = player.position.x, pz = player.position.z, py = player.position.y;
-  const py0 = prevPlayerY; // [FIX RAMPA] Y do frame anterior
+  const py0 = prevPlayerY;
   const minX = Math.min(px0,px), maxX = Math.max(px0,px);
   const minZ = Math.min(pz0,pz), maxZ = Math.max(pz0,pz);
   const PW = 0.45, PD = 0.45;
@@ -1560,7 +1589,6 @@ const internalCheckCollisions = function(pz0, px0){
       if(!(maxZ > rMinZ-PD && minZ < rMaxZ+PD)) continue;
       const t = clamp((rMaxZ - pz) / (rMaxZ - rMinZ), 0, 1);
       const rampY = o.top * t;
-      // Snap suave: se o jogador está abaixo da superfície, empurra para cima
       if(player.position.y < rampY - 0.05){
         player.position.y = rampY;
         vy = Math.max(vy, 0);
@@ -1576,14 +1604,12 @@ const internalCheckCollisions = function(pz0, px0){
     if(maxX < oMinX-PW || minX > oMaxX+PW) continue;
     if(o.kind==='train'){
       const top = o.top;
-      // [FIX RAMPA] Se o jogador está acima OU veio de cima, não mata (subida via rampa)
       if(py >= top - 0.15) continue;
       if(py0 >= top - 0.5) continue;
       if(internalOnHit(true, true)) return;
       continue;
     }
     if(o.kind==='low'){
-      // Agachar/slide passa por baixo NÃO — placa baixa exige PULO.
       if(py >= 0.95) continue;
       const wasInZ0 = (pz0 >= oMinZ && pz0 <= oMaxZ);
       const dx = Math.abs(px - o.x);
@@ -1592,7 +1618,6 @@ const internalCheckCollisions = function(pz0, px0){
       continue;
     }
     if(o.kind==='over'){
-      // Deslizar (slide) passa por baixo da placa alta.
       if(sliding) continue;
       const wasInZ0 = (pz0 >= oMinZ && pz0 <= oMaxZ);
       const dx = Math.abs(px - o.x);
@@ -1642,14 +1667,30 @@ const authError = document.getElementById('authError');
 const profileView = document.getElementById('profileView');
 const profileEmail = document.getElementById('profileEmail');
 const logoutBtn = document.getElementById('logoutBtn');
-const changeNameBtn = document.getElementById('changeNameBtn');
 const syncNowBtn = document.getElementById('syncNowBtn');
 
 function openModal(id){ const m=document.getElementById(id); if(m) m.classList.add('open'); }
-function closeModal(id){ const m=document.getElementById(id); if(m) m.classList.remove('open'); if(id==='modalShop') applyCharacter(charId); }
-function closeAllModals(){ document.querySelectorAll('.modal.open').forEach(m=>m.classList.remove('open')); applyCharacter(charId); }
+function closeModal(id){
+  const m=document.getElementById(id);
+  // [NOME FIXO] modalName travado não pode fechar
+  if(id==='modalName' && m && m.classList.contains('locked')) return;
+  if(m) m.classList.remove('open');
+  if(id==='modalShop') applyCharacter(charId);
+}
+function closeAllModals(){
+  document.querySelectorAll('.modal.open').forEach(m=>{
+    if(m.id==='modalName' && m.classList.contains('locked')) return;
+    m.classList.remove('open');
+  });
+  applyCharacter(charId);
+}
 document.querySelectorAll('.close-x').forEach(btn=>btn.addEventListener('click', ()=>closeModal(btn.dataset.close)));
-document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{
+  if(e.target===m){
+    if(m.id==='modalName' && m.classList.contains('locked')) return;
+    closeModal(m.id);
+  }
+}));
 
 document.getElementById('openShop').onclick = ()=>{
   if(!checkLoginState()){ alert('Você precisa entrar na sua conta para acessar a loja.'); return; }
@@ -1683,13 +1724,15 @@ function updateBankRow(){
 let loggedUser = null;
 let syncInProgress = false;
 let pushDebounce = null;
+let pendingScore = 0;
+let nameRequired = false; // [NOME FIXO]
 
 async function pullProfileFromAccount(user){
   if(!user || syncInProgress || !MetroAPI) return;
   syncInProgress = true;
   try{
     const remote = await MetroAPI.loadProfile();
-    if(!remote){ await pushProfileToAccount(); syncInProgress=false; return; }
+    if(!remote){ await pushProfileToAccount(); syncInProgress=false; maybeRequireName(remote); return; }
 
     const localOwned = loadOwned();
     const remoteOwned = Array.isArray(remote.owned) ? remote.owned : [];
@@ -1702,6 +1745,7 @@ async function pullProfileFromAccount(user){
     const remoteRecord = Number(remote.recordMs)||0;
     if(remoteRecord > getRecord()) setRecord(remoteRecord);
 
+    // [NOME FIXO] Se a conta tem nome salvo e local não tem, adota o nome da conta
     if(remote.playerName && !getPlayerName()) secureSave(SAVE_KEYS.name, remote.playerName);
 
     if(remote.charId && CHARS.some(c=>c.id===remote.charId) && isOwned(remote.charId)) equipChar(remote.charId);
@@ -1715,10 +1759,29 @@ async function pullProfileFromAccount(user){
 
     updateBankRow();
     updateHUD();
+    updateAccountUI();
     if(document.getElementById('modalShop').classList.contains('open')) renderShop();
+
+    // [NOME FIXO] Depois de sincronizar, verifica se precisa nome
+    maybeRequireName(remote);
   } catch(e){ console.error('[Sync] pull:', e); }
   syncInProgress = false;
 }
+
+// [NOME FIXO] Se a conta logada ainda não tem nome, força escolha (1x só)
+function maybeRequireName(remote){
+  if(!MetroAPI || !loggedUser) return;
+  const remoteName = remote && remote.playerName ? String(remote.playerName) : '';
+  const localName = getPlayerName();
+  if(!remoteName && !localName){
+    nameRequired = true;
+    setTimeout(()=>openNameModal(true), 500);
+  } else if(remoteName && !localName){
+    // já tem nome no servidor: adota local
+    secureSave(SAVE_KEYS.name, remoteName);
+  }
+}
+
 async function pushProfileToAccount(){
   if(!MetroAPI || !loggedUser) return;
   try{
@@ -1747,6 +1810,7 @@ function initAuth(){
       profileEmail.textContent = user.email;
       authForm.style.display = 'none';
       profileView.style.display = 'flex';
+      updateAccountUI();
       await pullProfileFromAccount(user);
     } else {
       authForm.style.display = 'flex';
@@ -1761,6 +1825,7 @@ function openAccount(){
     profileEmail.textContent = loggedUser.email;
     authForm.style.display = 'none';
     profileView.style.display = 'flex';
+    updateAccountUI();
   } else {
     authForm.style.display = 'flex';
     profileView.style.display = 'none';
@@ -1768,6 +1833,15 @@ function openAccount(){
     else authError.textContent = '';
   }
 }
+
+// [NOME FIXO] Mostra o nome permanente na tela da conta (read-only)
+function updateAccountUI(){
+  const el = document.getElementById('profileName');
+  if (!el) return;
+  const nm = getPlayerName();
+  el.textContent = nm ? `Nome: ${nm}` : '';
+}
+
 authToggle.onclick = ()=>{
   isRegisterMode = !isRegisterMode;
   authTitle.textContent = isRegisterMode ? 'CADASTRAR' : 'ENTRAR';
@@ -1799,7 +1873,6 @@ logoutBtn.onclick = async ()=>{
   if(MetroAPI){ try{ await MetroAPI.auth.signOut(); }catch(e){} }
   closeModal('modalAcc'); showMain();
 };
-changeNameBtn.onclick = ()=>{ pendingScore = getRecord(); openModal('modalName'); nameInput.value = getPlayerName(); setTimeout(()=>nameInput.focus(), 200); };
 syncNowBtn.onclick = async ()=>{
   if(!loggedUser) return;
   const btn = syncNowBtn;
@@ -1808,6 +1881,75 @@ syncNowBtn.onclick = async ()=>{
   await pullProfileFromAccount(loggedUser);
   btn.textContent = 'Sincronizado';
   setTimeout(()=>{ btn.textContent = 'Sincronizar agora'; }, 1800);
+};
+
+// ======================================================
+// [NOME FIXO] Modal de nome permanente
+// ======================================================
+function openNameModal(locked){
+  const modal = document.getElementById('modalName');
+  nameInput.value = getPlayerName() || '';
+  nameInput.disabled = false;
+  nameSave.disabled = false;
+  nameSave.textContent = locked ? 'CONFIRMAR PARA SEMPRE' : 'SALVAR';
+  modal.classList.toggle('locked', !!locked);
+  openModal('modalName');
+  setTimeout(()=>nameInput.focus(), 200);
+}
+
+function askNameAndSend(scoreMs){
+  pendingScore = scoreMs;
+  // Se já tem nome salvo, não pergunta de novo
+  if (getPlayerName() && !nameRequired) {
+    if (MetroAPI && loggedUser) {
+      MetroAPI.sendScore(getPlayerName(), scoreMs, charId, getRecord()).catch(()=>{});
+    }
+    return;
+  }
+  openNameModal(true);
+}
+
+nameSave.onclick = async ()=>{
+  const raw = nameInput.value.trim();
+  const name = raw || 'Anônimo';
+
+  // Se já existe nome salvo e NÃO é o fluxo obrigatório, bloqueia
+  if (getPlayerName() && !nameRequired) {
+    closeModal('modalName');
+    return;
+  }
+
+  nameSave.disabled = true;
+  nameSave.textContent = 'SALVANDO...';
+
+  // Grava localmente (permanente)
+  secureSave(SAVE_KEYS.name, name);
+
+  // Grava no Firestore (regras impedem troca depois)
+  if (MetroAPI && loggedUser) {
+    try {
+      await MetroAPI.sendScore(name, pendingScore, charId, getRecord());
+      await MetroAPI.saveProfile({
+        owned, bank, charId,
+        recordMs: getRecord(),
+        playerName: name
+      });
+    } catch(e) {
+      console.warn('[Nome fixo] falha ao gravar no servidor:', e);
+    }
+  }
+
+  nameRequired = false;
+  nameSave.disabled = false;
+  nameSave.textContent = 'CONFIRMAR PARA SEMPRE';
+  const modal = document.getElementById('modalName');
+  modal.classList.remove('locked');
+  closeModal('modalName');
+
+  updateAccountUI();
+  updateBankRow();
+  schedulePush();
+  showMain();
 };
 
 // ======================================================
@@ -1826,24 +1968,6 @@ async function openRanking(){
     return `<div class="rk-row"><span class="rk-pos${posCls}">${i+1}</span>${ch?swatch(ch):'<i class="sw"></i>'}<span class="rk-name">${escapeHtml(r.name)}</span><span class="rk-pat" style="color:${pat.cor}">${pat.nome}</span><span class="rk-time">${fmtTime(r.score)}</span></div>`;
   }).join('');
 }
-
-let pendingScore = 0;
-function askNameAndSend(scoreMs){
-  pendingScore = scoreMs;
-  nameInput.value = getPlayerName();
-  openModal('modalName');
-  setTimeout(()=>nameInput.focus(), 200);
-}
-nameSave.onclick = async ()=>{
-  const name = nameInput.value.trim() || 'Anônimo';
-  secureSave(SAVE_KEYS.name, name);
-  closeModal('modalName');
-  if(MetroAPI){
-    try{ await MetroAPI.sendScore(name, pendingScore, charId, getRecord()); }catch(e){}
-  }
-  schedulePush();
-  showMain();
-};
 
 // ======================================================
 // LOJA
@@ -1964,8 +2088,16 @@ function showMenu(title, big, sub, btnTxt, action, opts){
 addEventListener('keydown', e=>{
   const k = e.key; const kk = k.toLowerCase();
   if(k.startsWith('Arrow') || k===' ' || k==='Spacebar') e.preventDefault();
+
+  // [NOME FIXO] Modal de nome travado não fecha com Escape
+  const modalNameEl = document.getElementById('modalName');
+  if(modalNameEl && modalNameEl.classList.contains('open') && modalNameEl.classList.contains('locked')){
+    if(k==='Enter') nameSave.click();
+    return;
+  }
+
   if(isShopOrCfg()){ if(k==='Escape'){ e.preventDefault(); closeAllModals(); SFX.ui(); } return; }
-  if(document.getElementById('modalName').classList.contains('open')){ if(k==='Enter') nameSave.click(); return; }
+  if(modalNameEl && modalNameEl.classList.contains('open')){ if(k==='Enter') nameSave.click(); return; }
   if(document.getElementById('modalAcc').classList.contains('open')){ if(k==='Enter' && authForm.style.display!=='none') authBtn.click(); return; }
   if(isGameOverScreen()){ if(k===' '||k==='Spacebar'||k==='Enter'){ e.preventDefault(); SFX.ui(); startGame(); return; } if(k==='Escape'||kk==='m'){ e.preventDefault(); toMenu(); return; } return; }
   if(isPauseScreen()){ if(k===' '||k==='Spacebar'||k==='Escape'||k==='p'||k==='P'){ e.preventDefault(); togglePause(); return; } return; }
@@ -1987,7 +2119,7 @@ function resetRun(){
   clearWorld(); clearParticles();
   player.position.set(0,0,3); player.rotation.set(0,0,0);
   rig.rotation.set(0,0,0); rig.scale.setScalar(1); rig.position.y = 0.76; rig.visible = true;
-  prevPlayerX = 0; prevPlayerZ = 3; prevPlayerY = 0; // [FIX RAMPA] reset Y anterior
+  prevPlayerX = 0; prevPlayerZ = 3; prevPlayerY = 0;
   laneTilt=0; laneYaw=0; laneVelocity=0;
   lane=0; prevLane=0; onGround=true; vy=0; sliding=false; slideT=0; wantRoll=false;
   stumbleTimer=0; stumbleGrace=0; shake=0; rigFlashT=0;
@@ -2007,6 +2139,13 @@ function resetRun(){
 }
 
 function startGame(){
+  // [NOME FIXO] Se está logado mas sem nome, exige antes de jogar
+  if (MetroAPI && loggedUser && !getPlayerName()) {
+    nameRequired = true;
+    pendingScore = 0;
+    openNameModal(true);
+    return;
+  }
   applyCharacter(charId);
   ensureAudio(); resetRun(); running=true; menu.style.display='none';
   if(!secureSave('metroTutorialSeen','1')){
@@ -2055,13 +2194,10 @@ function endGame(){
   if(MetroAPI && loggedUser){
     MetroAPI.sendScore(getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
   }
-  if(t>20000){
-    const savedName = getPlayerName();
-    if(savedName && MetroAPI && loggedUser){
-      MetroAPI.sendScore(savedName, record, charId, record).catch(()=>{});
-    } else if(MetroAPI && !loggedUser){
-      setTimeout(()=>askNameAndSend(t), 600);
-    }
+  // [NOME FIXO] Se não está logado, não pergunta nome (conta é o que guarda)
+  if(t>20000 && !loggedUser && MetroAPI){
+    // antigo comportamento offline; mantido por compatibilidade
+    setTimeout(()=>askNameAndSend(t), 600);
   }
 }
 
@@ -2165,8 +2301,8 @@ function update(dt){
     }
   }
   if(sliding){ slideT -= dt; if(slideT<=0) sliding = false; }
-  
-  internalCheckCollisions(pz0, px0); 
+
+  internalCheckCollisions(pz0, px0);
   if(dead) return;
 
   dustT -= dt;
@@ -2214,7 +2350,7 @@ function update(dt){
   const bs = 1/(1 + (player.position.y-g)*0.35);
   blob.scale.set(bs,1,bs);
   prevPlayerX = player.position.x; prevPlayerZ = player.position.z;
-  prevPlayerY = player.position.y; // [FIX RAMPA] guarda Y do frame atual
+  prevPlayerY = player.position.y;
 
   updateHUD();
 }
