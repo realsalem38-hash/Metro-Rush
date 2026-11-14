@@ -23,8 +23,6 @@ body {
 
 canvas { display:block; touch-action:none; outline:none; }
 
-/* ====================== HUD ====================== */
-
 #hud {
   position:absolute;
   top:calc(14px + env(safe-area-inset-top));
@@ -65,8 +63,6 @@ canvas { display:block; touch-action:none; outline:none; }
   cursor:pointer; transition:transform .1s;
 }
 #pauseBtn:active { transform:scale(.92); }
-
-/* ====================== MENU PRINCIPAL ====================== */
 
 #menu {
   position:absolute; inset:0;
@@ -116,7 +112,6 @@ canvas { display:block; touch-action:none; outline:none; }
   background:rgba(255,212,42,.08);
 }
 
-/* Grade de botões secundários do menu principal */
 .main-grid {
   display:grid; grid-template-columns:1fr 1fr; gap:10px;
   width:100%;
@@ -134,8 +129,6 @@ canvas { display:block; touch-action:none; outline:none; }
 .main-btn:active { transform:scale(.95); }
 .main-btn .mb-ic { font-size:26px; line-height:1; }
 .main-btn .mb-tx { font-size:12px; font-weight:900; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,.9); }
-
-/* ====================== MODAIS ====================== */
 
 .modal {
   position:absolute; inset:0;
@@ -164,7 +157,6 @@ canvas { display:block; touch-action:none; outline:none; }
 .close-x:hover { background:rgba(255,80,80,.2); border-color:rgba(255,80,80,.5); color:#ff6b6b; }
 .close-x:active { transform:scale(.9); }
 
-/* Loja */
 #shopGrid {
   display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
   width:100%; padding:2px;
@@ -184,7 +176,6 @@ canvas { display:block; touch-action:none; outline:none; }
 .card.sel { border-color:#ffd42a; background:rgba(255,212,42,.15); color:#ffd42a; }
 #shopInfo { font-size:13px; font-weight:800; color:rgba(255,255,255,.8); text-align:center; min-height:18px; }
 
-/* Botões primário/ghost */
 #play, .primary {
   width:100%; padding:16px; border:0; border-radius:16px;
   background:#ffd42a; color:#332000; font-size:17px; font-weight:900;
@@ -206,8 +197,6 @@ canvas { display:block; touch-action:none; outline:none; }
 .ghost:active { transform:scale(.95); }
 .ghost.active { background:rgba(255,212,42,.2); border-color:#ffd42a; color:#ffd42a; }
 
-/* ====================== CONFIG ====================== */
-
 .cfg-row {
   display:flex; justify-content:space-between; align-items:center;
   width:100%; gap:10px; color:white; font-size:14px; font-weight:800;
@@ -225,8 +214,6 @@ canvas { display:block; touch-action:none; outline:none; }
 .seg { display:flex; gap:4px; }
 .seg .tog { min-width:0; padding:8px; flex:1; }
 
-/* ====================== INPUTS ====================== */
-
 input {
   width:100%; padding:14px; border-radius:14px; border:2px solid rgba(255,255,255,.15);
   background:rgba(0,0,0,.3); color:white; font-size:16px; font-weight:800;
@@ -234,8 +221,6 @@ input {
 }
 input:focus { border-color:#ffd42a; }
 input::placeholder { color:rgba(255,255,255,.4); }
-
-/* ====================== OUTROS ====================== */
 
 #hint {
   position:absolute; bottom:calc(18px + env(safe-area-inset-bottom)); width:100%;
@@ -258,7 +243,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
   100% { transform:scale(1.25); opacity:0; }
 }
 
-/* Responsivo */
 @media (max-height: 640px) {
   .menu-card { gap:10px; padding:16px 14px; }
   #mTitle { font-size:22px; }
@@ -296,8 +280,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
 </div>
 
 <div id="menu">
-
-  <!-- ==================== MENU PRINCIPAL ==================== -->
   <div class="menu-card" id="mainCard">
     <h1 id="mTitle">METRO RUSH</h1>
     <div id="mBig"></div>
@@ -306,26 +288,16 @@ input::placeholder { color:rgba(255,255,255,.4); }
     <button id="play">JOGAR</button>
 
     <div class="main-grid">
-      <button class="main-btn" id="openShop">
-        <span class="mb-ic">🛒</span><span class="mb-tx">Loja</span>
-      </button>
-      <button class="main-btn" id="openCfg">
-        <span class="mb-ic">⚙️</span><span class="mb-tx">Config</span>
-      </button>
-      <button class="main-btn" id="openRank">
-        <span class="mb-ic">🏆</span><span class="mb-tx">Rank</span>
-      </button>
-      <button class="main-btn" id="openAcc">
-        <span class="mb-ic">👤</span><span class="mb-tx">Conta</span>
-      </button>
+      <button class="main-btn" id="openShop"><span class="mb-ic">🛒</span><span class="mb-tx">Loja</span></button>
+      <button class="main-btn" id="openCfg"><span class="mb-ic">⚙️</span><span class="mb-tx">Config</span></button>
+      <button class="main-btn" id="openRank"><span class="mb-ic">🏆</span><span class="mb-tx">Rank</span></button>
+      <button class="main-btn" id="openAcc"><span class="mb-ic">👤</span><span class="mb-tx">Conta</span></button>
     </div>
 
     <div id="bankRow"></div>
-
     <button class="ghost" id="menuBtn" style="display:none;flex:none">MENU</button>
   </div>
 
-  <!-- ==================== MODAL: LOJA ==================== -->
   <div class="modal" id="modalShop">
     <div class="menu-card">
       <button class="close-x" data-close="modalShop">✕</button>
@@ -337,7 +309,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: CONFIG ==================== -->
   <div class="modal" id="modalCfg">
     <div class="menu-card">
       <button class="close-x" data-close="modalCfg">✕</button>
@@ -357,7 +328,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: RANKING ==================== -->
   <div class="modal" id="modalRank">
     <div class="menu-card">
       <button class="close-x" data-close="modalRank">✕</button>
@@ -368,11 +338,9 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: CONTA ==================== -->
   <div class="modal" id="modalAcc">
     <div class="menu-card">
       <button class="close-x" data-close="modalAcc">✕</button>
-
       <div id="authForm" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">
         <h1 class="ttl" id="authTitle">ENTRAR</h1>
         <p id="authError" style="color:#ff6b6b;font-size:13px;font-weight:800;text-align:center;min-height:16px;"></p>
@@ -381,7 +349,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
         <button class="primary" id="authBtn">ENTRAR</button>
         <button class="ghost" id="authToggle" style="flex:none;width:100%">Não tem conta? Cadastre-se</button>
       </div>
-
       <div id="profileView" style="width:100%;display:none;flex-direction:column;align-items:center;gap:12px">
         <h1 class="ttl">👤 Minha Conta</h1>
         <p style="font-size:15px;color:#ffd42a;font-weight:800;word-break:break-all;text-align:center" id="profileEmail">email@exemplo.com</p>
@@ -392,7 +359,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: MUDAR NOME ==================== -->
   <div class="modal" id="modalName">
     <div class="menu-card">
       <button class="close-x" data-close="modalName">✕</button>
@@ -402,90 +368,113 @@ input::placeholder { color:rgba(255,255,255,.4); }
       <button class="primary" id="nameSave">SALVAR</button>
     </div>
   </div>
-
 </div>
 
 <div id="hint">DESLIZE OU USE AS SETAS • W/A/S/D</div>
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import {
-    getFirestore, collection, doc, setDoc, query, orderBy,
-    limit, getDocs, serverTimestamp, getDoc
-  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import {
-    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    onAuthStateChanged, signOut
-  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
-    authDomain: "metro-rush-34e0f.firebaseapp.com",
-    projectId: "metro-rush-34e0f",
-    storageBucket: "metro-rush-34e0f.firebasestorage.app",
-    messagingSenderId: "935760798554",
-    appId: "1:935760798554:web:e797797c02b6718dac4963"
-  };
-
-  const fbApp = initializeApp(firebaseConfig);
-  const db = getFirestore(fbApp);
-  const auth = getAuth(fbApp);
-
-  window.fbAuth = {
-    auth,
-    createUser: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
-    signIn: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
-    signOut: () => signOut(auth),
-    onChange: (cb) => onAuthStateChanged(auth, cb)
-  };
-
-  window.sendScoreToServer = async (name, scoreMs, charId) => {
-    try {
-      let uid = auth.currentUser ? auth.currentUser.uid : null;
-      if (!uid) {
-        uid = localStorage.getItem('metroUID');
-        if (!uid) {
-          uid = 'visitante_' + Math.random().toString(36).substring(2, 12);
-          localStorage.setItem('metroUID', uid);
-        }
-      }
-      const docRef = doc(db, 'scores', uid);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists() || scoreMs > docSnap.data().score || name !== docSnap.data().name) {
-        await setDoc(docRef, {
-          name: String(name).slice(0, 12),
-          score: Math.floor(scoreMs > (docSnap.data()?.score || 0) ? scoreMs : docSnap.data().score),
-          charId: String(charId || 'zumbi'),
-          ts: serverTimestamp()
-        });
-      }
-      return true;
-    } catch (e) {
-      console.error('Firebase erro:', e);
-      return false;
-    }
-  };
-
-  window.fetchTop10 = async () => {
-    try {
-      const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
-      const snap = await getDocs(q);
-      return snap.docs.map(d => d.data());
-    } catch (e) {
-      console.error('Firebase erro:', e);
-      return [];
-    }
-  };
+<!-- ========== IMPORTMAP ========== -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
 </script>
 
+<!-- ========== FIREBASE (com fallback) ========== -->
 <script type="module">
-import * as THREE from './three.module.js';
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const {
+      getFirestore, collection, doc, setDoc, query, orderBy,
+      limit, getDocs, serverTimestamp, getDoc
+    } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const {
+      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+      onAuthStateChanged, signOut
+    } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
+      authDomain: "metro-rush-34e0f.firebaseapp.com",
+      projectId: "metro-rush-34e0f",
+      storageBucket: "metro-rush-34e0f.firebasestorage.app",
+      messagingSenderId: "935760798554",
+      appId: "1:935760798554:web:e797797c02b6718dac4963"
+    };
+
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getFirestore(fbApp);
+    const auth = getAuth(fbApp);
+
+    window.fbAuth = {
+      auth,
+      createUser: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
+      signIn: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
+      signOut: () => signOut(auth),
+      onChange: (cb) => onAuthStateChanged(auth, cb)
+    };
+
+    window.sendScoreToServer = async (name, scoreMs, charId) => {
+      try {
+        let uid = auth.currentUser ? auth.currentUser.uid : null;
+        if (!uid) {
+          uid = localStorage.getItem('metroUID');
+          if (!uid) {
+            uid = 'visitante_' + Math.random().toString(36).substring(2, 12);
+            localStorage.setItem('metroUID', uid);
+          }
+        }
+        const docRef = doc(db, 'scores', uid);
+        const docSnap = await getDoc(docRef);
+        const oldScore = docSnap.exists() ? (docSnap.data().score || 0) : 0;
+        const oldName = docSnap.exists() ? docSnap.data().name : null;
+        if (!docSnap.exists() || scoreMs > oldScore || name !== oldName) {
+          await setDoc(docRef, {
+            name: String(name).slice(0, 12),
+            score: Math.floor(Math.max(scoreMs, oldScore)),
+            charId: String(charId || 'zumbi'),
+            ts: serverTimestamp()
+          });
+        }
+        return true;
+      } catch (e) {
+        console.error('Firebase erro:', e);
+        return false;
+      }
+    };
+
+    window.fetchTop10 = async () => {
+      try {
+        const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => d.data());
+      } catch (e) {
+        console.error('Firebase erro:', e);
+        return [];
+      }
+    };
+  } catch (err) {
+    console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
+    window.fbAuth = null;
+    window.sendScoreToServer = async () => false;
+    window.fetchTop10 = async () => [];
+  }
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<!-- ========== JOGO ========== -->
+<script type="module">
+import * as THREE from 'three';
+
+if (location.protocol === 'file:') {
+  document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7">⚠️ <b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div>';
+  throw new Error('file:// não suportado');
+}
 
 // ======================================================
-// CONSTANTES E VARIÁVEIS DO JOGO
+// CONSTANTES
 // ======================================================
-
 const LW = 2.5, TH = 3.1, RAMP_LEN = 7, GRAV = 34, JUMP_V = 12, SLIDE_T = 0.7;
 const MOVE_TRAIN_V = 16, MIN_V = 15, START_V = 17, MAX_V = 34;
 const SEG_LEN = 50, SEG_N = 6, SPAWN_AHEAD = 130, MIN_GAP = 10, CYCLE = 150;
@@ -500,27 +489,25 @@ function shuffled(a) {
   for(let i=a.length-1;i>0;i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
   return a;
 }
-
 function fmtTime(ms) {
   ms = Math.max(0, Math.floor(ms));
   const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), mmm = ms % 1000;
   return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(mmm).padStart(3,'0');
 }
-
 function loadLS(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
 function saveLS(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
 
 const CHARS = [
-  { id:'zumbi',      name:'Zumbi',        icon:'🧟',        price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
-  { id:'robo',       name:'Robô',         icon:'🤖',        price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
-  { id:'ninja',      name:'Ninja',        icon:'🥷',        price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
-  { id:'samurai',    name:'Samurai',      icon:'⚔️',        price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
-  { id:'pirata',     name:'Pirata',       icon:'🏴‍☠️',      price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
-  { id:'rei',        name:'Rei',          icon:'👑',        price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
-  { id:'astro',      name:'Astronauta',   icon:'🧑‍🚀',      price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
-  { id:'capoeira',   name:'Capoeirista',  icon:'🤸',        price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
-  { id:'mittens',    name:'Mittens',      icon:'🐈',        price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
-  { id:'salem',      name:'Salém',        icon:'🐈‍⬛',      price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false }
+  { id:'zumbi',    name:'Zumbi',       icon:'🧟',   price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
+  { id:'robo',     name:'Robô',        icon:'🤖',   price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
+  { id:'ninja',    name:'Ninja',       icon:'🥷',   price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
+  { id:'samurai',  name:'Samurai',     icon:'⚔️',   price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
+  { id:'pirata',   name:'Pirata',      icon:'🏴‍☠️', price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
+  { id:'rei',      name:'Rei',         icon:'👑',   price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
+  { id:'astro',    name:'Astronauta',  icon:'🧑‍🚀', price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
+  { id:'capoeira', name:'Capoeirista', icon:'🤸',   price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
+  { id:'mittens',  name:'Mittens',     icon:'🐈',   price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
+  { id:'salem',    name:'Salém',       icon:'🐈‍⬛', price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false }
 ];
 
 const IS_MOBILE = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -541,7 +528,6 @@ let PQ = PQ_MAP[cfg.quality];
 // ======================================================
 // RENDERER E CENA
 // ======================================================
-
 let MAX_PR = qualityCap(cfg.quality);
 let pixelRatio = Math.min(devicePixelRatio, MAX_PR);
 
@@ -680,9 +666,8 @@ function bake(parts) {
 }
 
 // ======================================================
-// CENARIO BASE
+// CENARIO
 // ======================================================
-
 const lampParts = [];
 function segmentGeometry() {
   const parts = [];
@@ -766,6 +751,7 @@ function flap(parent,x,y,z,len,w,mat,phase,base) { const p = new THREE.Group(); 
 function limbFx(key,limb) { const h = new THREE.Group(); h.visible = false; limb.add(h); FX[key] = h; return h; }
 function grp(id) { const g = new THREE.Group(); g.visible = false; body.add(g); FX[id] = g; return g; }
 
+// (mantidos os mesmos blocos de personagem do seu arquivo original)
 {
   const g = grp('zumbi'); box(g,0.18,0.14,0.18,M.hair,-0.12,2.46,0.0); box(g,0.16,0.16,0.16,M.hair,0.1,2.5,0.05); box(g,0.16,0.12,0.16,M.hair,0.0,2.47,-0.1); ball(g,0.14,M.pink,0.08,2.4,0.14); box(g,0.1,0.1,0.04,M.glowY,-0.12,2.15,-0.32); box(g,0.1,0.1,0.04,M.glowY, 0.12,2.15,-0.32); box(g,0.22,0.06,0.04,M.dark,0,1.98,-0.32); box(g,0.5,0.55,0.03,M.skin,0,1.5,0.24); for(const y of [1.65,1.52,1.39]) box(g,0.4,0.05,0.04,M.white,0,y,0.26); box(g,0.2,0.2,0.47,M.torso,-0.3,1.0,0); box(g,0.16,0.28,0.47,M.torso,0.28,0.95,0);
 }
@@ -827,6 +813,9 @@ let capeG;
 
 const blob = new THREE.Mesh(new THREE.CircleGeometry(0.75,16).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.28, depthWrite:false })); scene.add(blob);
 
+// ======================================================
+// PARTÍCULAS
+// ======================================================
 const PMAX = 240;
 const P = Array.from({length:PMAX}, ()=>({ life:0, max:1, x:0, y:0, z:0, vx:0, vy:0, vz:0, s:0.1, g:0, st:1 }));
 const pMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshBasicMaterial({ color:0xffffff }), PMAX);
@@ -844,6 +833,9 @@ function updateParticles(dt) {
 }
 function clearParticles() { for(const p of P) p.life = 0; }
 
+// ======================================================
+// OBSTÁCULOS E MOEDAS
+// ======================================================
 const TRAIN_COLORS = [[0xd6dadf,0x2f78c4],[0x3f86c8,0xf2f2f2],[0xe9b82e,0x333b48],[0xc94a3f,0xf1e9d8]];
 const trainCache = {};
 function trainGeo(len,v) {
@@ -926,6 +918,9 @@ function trySpawnPattern(z0) {
   const laneTrain = ls[0]; const laneOther = ls[1]; const thirdFree = ls[2]; makeTrain(laneTrain, z0 - 2 - 5, 10, false); if(Math.random() < 0.5) makeLow(laneOther, z0 - 2); else makeOver(laneOther, z0 - 2); coinLine(thirdFree, z0, 6, 2.2, 0.95); return finish(14);
 }
 
+// ======================================================
+// ESTADO
+// ======================================================
 let running = false, paused = false, dead = false, deadT = 0, ended = false, counting = false, countStep = -1, countT = 0;
 let speed = START_V, speedK = 0, runTimeMs = 0, coinsN = 0, banked = false;
 let lane = 0, prevLane = 0, onGround = true, vy = 0, sliding = false, slideT = 0, wantRoll = false;
@@ -944,10 +939,12 @@ let charId = loadLS('metroChar2') || CHARS[0].id;
 if(!CHARS.some(c=>c.id===charId)) charId = CHARS[0].id;
 if(!isOwned(charId)) charId = CHARS[0].id;
 applyCharacter(charId);
-// CORREÇÃO: só equipa se o personagem já foi comprado
 function equipChar(id) { if(!isOwned(id)) return; charId = id; saveLS('metroChar2', id); applyCharacter(id); }
 function bankRun() { if(banked) return; banked = true; if(coinsN > 0 || runTimeMs > 5000) { const timeBonus = Math.floor(runTimeMs / 5000); bank = Math.floor(bank + coinsN + timeBonus); saveBank(); } }
 
+// ======================================================
+// ÁUDIO
+// ======================================================
 let actx = null, musicGain = null, noiseBuf = null;
 function applyAudioCfg() { if(musicGain) musicGain.gain.value = cfg.music / 100 * 0.5; }
 function ensureAudio() {
@@ -992,6 +989,9 @@ function musicTick() { if(!actx) return; const bpm = 124 + speedK*38; const sd =
 function stopMusic() { if(musicTimer) { clearInterval(musicTimer); musicTimer = null; } }
 function startMusic() { if(!actx || !musicGain || cfg.music <= 0) return; stopMusic(); nextNoteT = actx.currentTime + 0.06; musicTimer = setInterval(musicTick,30); }
 
+// ======================================================
+// INPUT
+// ======================================================
 function canAct() { return running && !paused && !dead && !counting; }
 function moveLane(d) { if(!canAct()) return; const n = clamp(lane+d,-1,1); if(n!==lane) { prevLane = lane; lane = n; SFX.lane(); } }
 function doJump() { if(!canAct()) return; if(!onGround) return; sliding = false; onGround = false; vy = JUMP_V; SFX.jump(); burst(player.position.x, player.position.y+0.1, player.position.z, 6, 1.6, 1.0, 0.4, 0.16, DUST, 3); }
@@ -1059,21 +1059,21 @@ function checkCollisions(pz0, px0) {
   }
 }
 
+// ======================================================
+// UI
+// ======================================================
 const timerEl = document.getElementById('timerTxt'), timerBox = document.getElementById('timerBox'), coinsEl = document.getElementById('coins'), scoreDisplayEl = document.getElementById('scoreDisplay');
-const menu = document.getElementById('menu'), mainCard = document.getElementById('mainCard');
+const menu = document.getElementById('menu');
 const mTitle = document.getElementById('mTitle'), mBig = document.getElementById('mBig'), mSub = document.getElementById('mSub'), bankRow = document.getElementById('bankRow'), playBtn = document.getElementById('play');
 const hint = document.getElementById('hint'), pauseBtn = document.getElementById('pauseBtn'), cdEl = document.getElementById('countdown');
 const shopGrid = document.getElementById('shopGrid'), shopInfo = document.getElementById('shopInfo'), shopAct = document.getElementById('shopAct'), shopBank = document.getElementById('shopBank');
 const cfgMusic = document.getElementById('cfgMusic'), cfgSfx = document.getElementById('cfgSfx'), cfgVib = document.getElementById('cfgVib'), cfgCycle = document.getElementById('cfgCycle'), cfgQual = document.getElementById('cfgQual');
 const rankList = document.getElementById('rankList');
 const nameInput = document.getElementById('nameInput'), nameSave = document.getElementById('nameSave');
-
 const authForm = document.getElementById('authForm'), authTitle = document.getElementById('authTitle'), authEmail = document.getElementById('authEmail'), authPass = document.getElementById('authPass'), authBtn = document.getElementById('authBtn'), authToggle = document.getElementById('authToggle'), authError = document.getElementById('authError');
 const profileView = document.getElementById('profileView'), profileEmail = document.getElementById('profileEmail'), logoutBtn = document.getElementById('logoutBtn'), changeNameBtn = document.getElementById('changeNameBtn');
 
-// ============ MODAL HELPERS ============
 function openModal(id) { const m = document.getElementById(id); if(m) m.classList.add('open'); }
-// CORREÇÃO: ao fechar a loja, desfaz o preview e volta ao personagem realmente equipado
 function closeModal(id) {
   const m = document.getElementById(id);
   if(m) m.classList.remove('open');
@@ -1087,12 +1087,10 @@ function closeAllModals() {
 document.querySelectorAll('.close-x').forEach(btn => {
   btn.addEventListener('click', () => closeModal(btn.dataset.close));
 });
-// CORREÇÃO: clique fora do modal também passa por closeModal
 document.querySelectorAll('.modal').forEach(m => {
   m.addEventListener('click', (e) => { if(e.target === m) closeModal(m.id); });
 });
 
-// ============ BOTÕES DO MENU PRINCIPAL ============
 document.getElementById('openShop').onclick = () => { shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui(); };
 document.getElementById('openCfg').onclick = () => { syncCfgUI(); openModal('modalCfg'); SFX.ui(); };
 document.getElementById('openRank').onclick = () => { openModal('modalRank'); openRanking(); SFX.ui(); };
@@ -1106,27 +1104,25 @@ function updateHUD() {
   const s = Math.floor(runTimeMs / 10); if(s !== lastScore) { scoreDisplayEl.textContent = s; lastScore = s; }
   const danger = stumbleTimer > 0 && !dead; if(danger !== lastDanger) { timerBox.classList.toggle('danger', danger); lastDanger = danger; }
 }
-
 function updateBankRow() { const eq = CHARS.find(x=>x.id===charId) || CHARS[0]; bankRow.textContent = '🪙 ' + bank + '  ·  ' + eq.icon + ' ' + eq.name; }
 
-// ============ AUTENTICAÇÃO ============
+// ============ AUTH ============
 let isRegisterMode = false;
 let loggedUser = null;
 
 function initAuth() {
-  if (window.fbAuth) {
-    window.fbAuth.onChange((user) => {
-      loggedUser = user;
-      if (user) {
-        profileEmail.textContent = user.email;
-        authForm.style.display = 'none';
-        profileView.style.display = 'flex';
-      } else {
-        authForm.style.display = 'flex';
-        profileView.style.display = 'none';
-      }
-    });
-  }
+  if (!window.fbAuth) return;
+  window.fbAuth.onChange((user) => {
+    loggedUser = user;
+    if (user) {
+      profileEmail.textContent = user.email;
+      authForm.style.display = 'none';
+      profileView.style.display = 'flex';
+    } else {
+      authForm.style.display = 'flex';
+      profileView.style.display = 'none';
+    }
+  });
 }
 
 function openAccount() {
@@ -1137,6 +1133,8 @@ function openAccount() {
   } else {
     authForm.style.display = 'flex';
     profileView.style.display = 'none';
+    if (!window.fbAuth) authError.textContent = 'Modo offline — login indisponível.';
+    else authError.textContent = '';
   }
 }
 
@@ -1149,6 +1147,7 @@ authToggle.onclick = () => {
 };
 
 authBtn.onclick = async () => {
+  if (!window.fbAuth) { authError.textContent = 'Servidor indisponível. Jogue offline.'; return; }
   const email = authEmail.value.trim(), pass = authPass.value;
   if (!email || !pass) { authError.textContent = 'Preencha e-mail e senha.'; return; }
   if (pass.length < 6) { authError.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
@@ -1168,14 +1167,17 @@ authBtn.onclick = async () => {
   }
 };
 
-logoutBtn.onclick = async () => { await window.fbAuth.signOut(); closeModal('modalAcc'); showMain(); };
+logoutBtn.onclick = async () => {
+  if (window.fbAuth) { try { await window.fbAuth.signOut(); } catch(e) {} }
+  closeModal('modalAcc'); showMain();
+};
 changeNameBtn.onclick = () => { pendingScore = getRecord(); openModal('modalName'); nameInput.value = getPlayerName(); setTimeout(() => nameInput.focus(), 200); };
 
-// ============ RANKING E NOME ============
+// ============ RANKING ============
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 async function openRanking() {
   rankList.innerHTML = '<div style="color:rgba(255,255,255,.6);text-align:center;padding:20px">Carregando...</div>';
-  if(!window.fetchTop10) { rankList.innerHTML = '<div style="color:#f88;text-align:center;padding:20px">Erro ao conectar. Verifique a internet.</div>'; return; }
+  if(!window.fetchTop10) { rankList.innerHTML = '<div style="color:#f88;text-align:center;padding:20px">Modo offline — ranking indisponível.</div>'; return; }
   const top = await window.fetchTop10();
   if (top.length === 0) { rankList.innerHTML = '<div style="color:rgba(255,255,255,.6);text-align:center;padding:20px">Ninguém no ranking ainda. Seja o primeiro!</div>'; return; }
   rankList.innerHTML = top.map((r, i) => {
@@ -1196,7 +1198,7 @@ nameSave.onclick = async () => {
   const name = nameInput.value.trim() || 'Anônimo';
   saveLS('metroPlayerName', name);
   closeModal('modalName');
-  await window.sendScoreToServer(name, pendingScore, charId);
+  if (window.sendScoreToServer) { try { await window.sendScoreToServer(name, pendingScore, charId); } catch(e) {} }
   showMain();
 };
 
@@ -1231,7 +1233,7 @@ cfgVib.addEventListener('click', ()=>{ cfg.vib = !cfg.vib; setTog(cfgVib, cfg.vi
 cfgCycle.addEventListener('click', ()=>{ cfg.cycle = !cfg.cycle; setTog(cfgCycle, cfg.cycle); saveCfg(); updateSky(0, true); });
 for(const b of cfgQual.children) { b.addEventListener('click', ()=>{ cfg.quality = b.dataset.q; applyQuality(); syncCfgUI(); saveCfg(); }); }
 
-// ============ INICIAR ============
+// ============ FLUXO ============
 function getRecord() { return Number(loadLS('metroRecordMs')||0); }
 function setRecord(v) { saveLS('metroRecordMs', v); }
 function showMain() {
@@ -1301,15 +1303,15 @@ addEventListener('keydown', e=>{
 
 function clearWorld() { for(const o of obstacles) scene.remove(o.group); for(const c of coins) scene.remove(c.m); obstacles = []; coins = []; }
 function resetRun() {
-running = false
-paused = false
-ended = false
+  running = false;
+  paused = false;
+  ended = false;
   clearWorld(); clearParticles(); player.position.set(0,0,3); player.rotation.set(0,0,0); rig.rotation.set(0,0,0); rig.scale.setScalar(1); rig.position.y = 0.76; rig.visible = true;
   prevPlayerX = 0; prevPlayerZ = 3; laneTilt = 0; laneYaw = 0; laneVelocity = 0;
   lane = 0; prevLane = 0; onGround = true; vy = 0; sliding = false; slideT = 0; wantRoll = false;
   stumbleTimer = 0; stumbleGrace = 0; shake = 0; rigFlashT = 0;
   speed = START_V; speedK = 0; runTimeMs = 0; coinsN = 0; banked = false; runT = 0; dustT = 0; windT = 0;
-  dead = false; deadT = 0; ended = false; paused = false; counting = false; cdEl.style.display = 'none'; stopMusic();
+  dead = false; deadT = 0; counting = false; cdEl.style.display = 'none'; stopMusic();
   swipeCooldown = 0; tracking = false;
   segments.forEach((s,i)=>{ s.position.z = -i*SEG_LEN; }); resetBuildings(); nextZ = player.position.z - 45;
   todT = 0; updateSky(0, true);
@@ -1319,7 +1321,7 @@ ended = false
 }
 
 function startGame() {
-  applyCharacter(charId); // CORREÇÃO: garante o personagem realmente equipado
+  applyCharacter(charId);
   ensureAudio(); resetRun(); running = true; menu.style.display = 'none';
   if(!loadLS('metroTutorialSeen')) { const touch = matchMedia('(pointer:coarse)').matches; hint.textContent = touch ? 'DESLIZE O DEDO PARA CONTROLAR' : 'W/A/S/D OU SETAS • ESPAÇO PULA • SHIFT DESLIZA'; hint.style.opacity = 1; setTimeout(()=>{ hint.style.opacity = 0; saveLS('metroTutorialSeen', '1'); },3500); } else { hint.style.opacity = 0; }
   updateHUD(); beginCountdown();
@@ -1349,7 +1351,7 @@ function endGame() {
   SFX.gameover(); if(isRecord) setTimeout(()=>SFX.record(), 900);
   const timeBonus = Math.floor(t / 5000); const totalGanho = coinsN + timeBonus;
   showMenu(isRecord ? 'NOVO RECORDE!' : 'VOCÊ BATEU!', fmtTime(t), 'Recorde ' + fmtTime(record) + '  ·  +' + totalGanho + ' moedas', 'JOGAR NOVAMENTE', startGame, { menu:true, bank:true, hideGrid:true });
-  if(t > 20000) { const savedName = loadLS('metroPlayerName'); if(savedName) { window.sendScoreToServer(savedName, t, charId); } else { setTimeout(() => askNameAndSend(t), 600); } }
+  if(t > 20000) { const savedName = loadLS('metroPlayerName'); if(savedName && window.sendScoreToServer) { window.sendScoreToServer(savedName, t, charId).catch(()=>{}); } else if (window.sendScoreToServer) { setTimeout(() => askNameAndSend(t), 600); } }
 }
 
 function animateChar(dt, tx) {
@@ -1442,7 +1444,6 @@ function adapt(rawDt) {
 
 function loop() {
   const raw = clock.getDelta(); const dt = Math.min(raw,0.034);
-  // Trava de segurança: fora da loja, o personagem exibido é sempre o equipado e comprado
   if(!document.querySelector('#modalShop.open')) {
     if(!isOwned(charId)) { charId = CHARS[0].id; saveLS('metroChar2', charId); }
     if(curChar.id !== charId) applyCharacter(charId);
@@ -1456,7 +1457,9 @@ function loop() {
 renderer.setAnimationLoop(loop);
 camera.position.set(0,camHeight,player.position.z+camBack); camera.lookAt(0,1.4,player.position.z-12); blob.position.set(0,0.1,3);
 
-initAuth();
+if (window.fbAuth) initAuth();
+else window.addEventListener('fb-ready', initAuth, { once: true });
+
 showMain();
 </script>
 </body>
