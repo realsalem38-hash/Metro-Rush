@@ -116,7 +116,6 @@ canvas { display:block; touch-action:none; outline:none; }
   background:rgba(255,212,42,.08);
 }
 
-/* Grade de botões secundários do menu principal */
 .main-grid {
   display:grid; grid-template-columns:1fr 1fr; gap:10px;
   width:100%;
@@ -184,7 +183,6 @@ canvas { display:block; touch-action:none; outline:none; }
 .card.sel { border-color:#ffd42a; background:rgba(255,212,42,.15); color:#ffd42a; }
 #shopInfo { font-size:13px; font-weight:800; color:rgba(255,255,255,.8); text-align:center; min-height:18px; }
 
-/* Botões primário/ghost */
 #play, .primary {
   width:100%; padding:16px; border:0; border-radius:16px;
   background:#ffd42a; color:#332000; font-size:17px; font-weight:900;
@@ -258,7 +256,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
   100% { transform:scale(1.25); opacity:0; }
 }
 
-/* Responsivo */
 @media (max-height: 640px) {
   .menu-card { gap:10px; padding:16px 14px; }
   #mTitle { font-size:22px; }
@@ -296,8 +293,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
 </div>
 
 <div id="menu">
-
-  <!-- ==================== MENU PRINCIPAL ==================== -->
   <div class="menu-card" id="mainCard">
     <h1 id="mTitle">METRO RUSH</h1>
     <div id="mBig"></div>
@@ -325,7 +320,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     <button class="ghost" id="menuBtn" style="display:none;flex:none">MENU</button>
   </div>
 
-  <!-- ==================== MODAL: LOJA ==================== -->
   <div class="modal" id="modalShop">
     <div class="menu-card">
       <button class="close-x" data-close="modalShop">✕</button>
@@ -337,7 +331,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: CONFIG ==================== -->
   <div class="modal" id="modalCfg">
     <div class="menu-card">
       <button class="close-x" data-close="modalCfg">✕</button>
@@ -357,7 +350,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: RANKING ==================== -->
   <div class="modal" id="modalRank">
     <div class="menu-card">
       <button class="close-x" data-close="modalRank">✕</button>
@@ -368,7 +360,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: CONTA ==================== -->
   <div class="modal" id="modalAcc">
     <div class="menu-card">
       <button class="close-x" data-close="modalAcc">✕</button>
@@ -392,7 +383,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- ==================== MODAL: MUDAR NOME ==================== -->
   <div class="modal" id="modalName">
     <div class="menu-card">
       <button class="close-x" data-close="modalName">✕</button>
@@ -402,85 +392,112 @@ input::placeholder { color:rgba(255,255,255,.4); }
       <button class="primary" id="nameSave">SALVAR</button>
     </div>
   </div>
-
 </div>
 
 <div id="hint">DESLIZE OU USE AS SETAS • W/A/S/D</div>
 
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import {
-    getFirestore, collection, doc, setDoc, query, orderBy,
-    limit, getDocs, serverTimestamp, getDoc
-  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-  import {
-    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    onAuthStateChanged, signOut
-  } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
-    authDomain: "metro-rush-34e0f.firebaseapp.com",
-    projectId: "metro-rush-34e0f",
-    storageBucket: "metro-rush-34e0f.firebasestorage.app",
-    messagingSenderId: "935760798554",
-    appId: "1:935760798554:web:e797797c02b6718dac4963"
-  };
-
-  const fbApp = initializeApp(firebaseConfig);
-  const db = getFirestore(fbApp);
-  const auth = getAuth(fbApp);
-
-  window.fbAuth = {
-    auth,
-    createUser: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
-    signIn: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
-    signOut: () => signOut(auth),
-    onChange: (cb) => onAuthStateChanged(auth, cb)
-  };
-
-  window.sendScoreToServer = async (name, scoreMs, charId) => {
-    try {
-      let uid = auth.currentUser ? auth.currentUser.uid : null;
-      if (!uid) {
-        uid = localStorage.getItem('metroUID');
-        if (!uid) {
-          uid = 'visitante_' + Math.random().toString(36).substring(2, 12);
-          localStorage.setItem('metroUID', uid);
-        }
-      }
-      const docRef = doc(db, 'scores', uid);
-      const docSnap = await getDoc(docRef);
-      if (!docSnap.exists() || scoreMs > docSnap.data().score || name !== docSnap.data().name) {
-        await setDoc(docRef, {
-          name: String(name).slice(0, 12),
-          score: Math.floor(scoreMs > (docSnap.data()?.score || 0) ? scoreMs : docSnap.data().score),
-          charId: String(charId || 'zumbi'),
-          ts: serverTimestamp()
-        });
-      }
-      return true;
-    } catch (e) {
-      console.error('Firebase erro:', e);
-      return false;
-    }
-  };
-
-  window.fetchTop10 = async () => {
-    try {
-      const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
-      const snap = await getDocs(q);
-      return snap.docs.map(d => d.data());
-    } catch (e) {
-      console.error('Firebase erro:', e);
-      return [];
-    }
-  };
+<!-- ============ IMPORTMAP PARA THREE.JS ============ -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
 </script>
 
+<!-- ============ FIREBASE (com fallback offline) ============ -->
 <script type="module">
-import * as THREE from './three.module.js';
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const {
+      getFirestore, collection, doc, setDoc, query, orderBy,
+      limit, getDocs, serverTimestamp, getDoc
+    } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const {
+      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+      onAuthStateChanged, signOut
+    } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
+      authDomain: "metro-rush-34e0f.firebaseapp.com",
+      projectId: "metro-rush-34e0f",
+      storageBucket: "metro-rush-34e0f.firebasestorage.app",
+      messagingSenderId: "935760798554",
+      appId: "1:935760798554:web:e797797c02b6718dac4963"
+    };
+
+    const fbApp = initializeApp(firebaseConfig);
+    const db = getFirestore(fbApp);
+    const auth = getAuth(fbApp);
+
+    window.fbAuth = {
+      auth,
+      createUser: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
+      signIn: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
+      signOut: () => signOut(auth),
+      onChange: (cb) => onAuthStateChanged(auth, cb)
+    };
+
+    window.sendScoreToServer = async (name, scoreMs, charId) => {
+      try {
+        let uid = auth.currentUser ? auth.currentUser.uid : null;
+        if (!uid) {
+          uid = localStorage.getItem('metroUID');
+          if (!uid) {
+            uid = 'visitante_' + Math.random().toString(36).substring(2, 12);
+            localStorage.setItem('metroUID', uid);
+          }
+        }
+        const docRef = doc(db, 'scores', uid);
+        const docSnap = await getDoc(docRef);
+        const oldScore = docSnap.exists() ? (docSnap.data().score || 0) : 0;
+        const oldName = docSnap.exists() ? docSnap.data().name : null;
+        if (!docSnap.exists() || scoreMs > oldScore || name !== oldName) {
+          await setDoc(docRef, {
+            name: String(name).slice(0, 12),
+            score: Math.floor(Math.max(scoreMs, oldScore)),
+            charId: String(charId || 'zumbi'),
+            ts: serverTimestamp()
+          });
+        }
+        return true;
+      } catch (e) {
+        console.error('Firebase erro:', e);
+        return false;
+      }
+    };
+
+    window.fetchTop10 = async () => {
+      try {
+        const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
+        const snap = await getDocs(q);
+        return snap.docs.map(d => d.data());
+      } catch (e) {
+        console.error('Firebase erro:', e);
+        return [];
+      }
+    };
+  } catch (err) {
+    console.warn('[Metro Rush] Firebase indisponível — rodando em modo offline.', err);
+    window.fbAuth = null;
+    window.sendScoreToServer = async () => false;
+    window.fetchTop10 = async () => [];
+  }
+  window.dispatchEvent(new Event('fb-ready'));
+</script>
+
+<!-- ============ JOGO PRINCIPAL ============ -->
+<script type="module">
+import * as THREE from 'three';
+
+if (location.protocol === 'file:') {
+  const warn = document.createElement('div');
+  warn.style.cssText = 'position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:16px;line-height:1.6;';
+  warn.innerHTML = '⚠️ <b>Este jogo precisa ser servido via HTTP.</b><br><br>Abra um terminal na pasta do arquivo e rode:<br><br><code style="background:#222;padding:8px 12px;border-radius:6px;color:#ffd42a">python -m http.server 8000</code><br><br>Depois acesse <code style="color:#ffd42a">http://localhost:8000</code>';
+  document.body.appendChild(warn);
+  throw new Error('file:// não suportado');
+}
 
 // ======================================================
 // CONSTANTES E VARIÁVEIS DO JOGO
@@ -1104,19 +1121,18 @@ let isRegisterMode = false;
 let loggedUser = null;
 
 function initAuth() {
-  if (window.fbAuth) {
-    window.fbAuth.onChange((user) => {
-      loggedUser = user;
-      if (user) {
-        profileEmail.textContent = user.email;
-        authForm.style.display = 'none';
-        profileView.style.display = 'flex';
-      } else {
-        authForm.style.display = 'flex';
-        profileView.style.display = 'none';
-      }
-    });
-  }
+  if (!window.fbAuth) return;
+  window.fbAuth.onChange((user) => {
+    loggedUser = user;
+    if (user) {
+      profileEmail.textContent = user.email;
+      authForm.style.display = 'none';
+      profileView.style.display = 'flex';
+    } else {
+      authForm.style.display = 'flex';
+      profileView.style.display = 'none';
+    }
+  });
 }
 
 function openAccount() {
@@ -1127,6 +1143,11 @@ function openAccount() {
   } else {
     authForm.style.display = 'flex';
     profileView.style.display = 'none';
+    if (!window.fbAuth) {
+      authError.textContent = 'Modo offline — login indisponível.';
+    } else {
+      authError.textContent = '';
+    }
   }
 }
 
@@ -1139,6 +1160,7 @@ authToggle.onclick = () => {
 };
 
 authBtn.onclick = async () => {
+  if (!window.fbAuth) { authError.textContent = 'Servidor indisponível. Jogue offline.'; return; }
   const email = authEmail.value.trim(), pass = authPass.value;
   if (!email || !pass) { authError.textContent = 'Preencha e-mail e senha.'; return; }
   if (pass.length < 6) { authError.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
@@ -1158,14 +1180,22 @@ authBtn.onclick = async () => {
   }
 };
 
-logoutBtn.onclick = async () => { await window.fbAuth.signOut(); closeModal('modalAcc'); showMain(); };
+logoutBtn.onclick = async () => {
+  if (window.fbAuth) { try { await window.fbAuth.signOut(); } catch(e) {} }
+  closeModal('modalAcc');
+  toMenu();
+};
+
 changeNameBtn.onclick = () => { pendingScore = getRecord(); openModal('modalName'); nameInput.value = getPlayerName(); setTimeout(() => nameInput.focus(), 200); };
 
 // ============ RANKING E NOME ============
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 async function openRanking() {
   rankList.innerHTML = '<div style="color:rgba(255,255,255,.6);text-align:center;padding:20px">Carregando...</div>';
-  if(!window.fetchTop10) { rankList.innerHTML = '<div style="color:#f88;text-align:center;padding:20px">Erro ao conectar. Verifique a internet.</div>'; return; }
+  if (!window.fetchTop10) {
+    rankList.innerHTML = '<div style="color:#f88;text-align:center;padding:20px">Modo offline — ranking indisponível.</div>';
+    return;
+  }
   const top = await window.fetchTop10();
   if (top.length === 0) { rankList.innerHTML = '<div style="color:rgba(255,255,255,.6);text-align:center;padding:20px">Ninguém no ranking ainda. Seja o primeiro!</div>'; return; }
   rankList.innerHTML = top.map((r, i) => {
@@ -1186,7 +1216,9 @@ nameSave.onclick = async () => {
   const name = nameInput.value.trim() || 'Anônimo';
   saveLS('metroPlayerName', name);
   closeModal('modalName');
-  await window.sendScoreToServer(name, pendingScore, charId);
+  if (window.sendScoreToServer) {
+    try { await window.sendScoreToServer(name, pendingScore, charId); } catch(e) {}
+  }
   showMain();
 };
 
@@ -1291,15 +1323,15 @@ addEventListener('keydown', e=>{
 
 function clearWorld() { for(const o of obstacles) scene.remove(o.group); for(const c of coins) scene.remove(c.m); obstacles = []; coins = []; }
 function resetRun() {
-running = false
-paused = false
-ended = false
+  running = false;
+  paused = false;
+  ended = false;
   clearWorld(); clearParticles(); player.position.set(0,0,3); player.rotation.set(0,0,0); rig.rotation.set(0,0,0); rig.scale.setScalar(1); rig.position.y = 0.76; rig.visible = true;
   prevPlayerX = 0; prevPlayerZ = 3; laneTilt = 0; laneYaw = 0; laneVelocity = 0;
   lane = 0; prevLane = 0; onGround = true; vy = 0; sliding = false; slideT = 0; wantRoll = false;
   stumbleTimer = 0; stumbleGrace = 0; shake = 0; rigFlashT = 0;
   speed = START_V; speedK = 0; runTimeMs = 0; coinsN = 0; banked = false; runT = 0; dustT = 0; windT = 0;
-  dead = false; deadT = 0; ended = false; paused = false; counting = false; cdEl.style.display = 'none'; stopMusic();
+  dead = false; deadT = 0; paused = false; counting = false; cdEl.style.display = 'none'; stopMusic();
   swipeCooldown = 0; tracking = false;
   segments.forEach((s,i)=>{ s.position.z = -i*SEG_LEN; }); resetBuildings(); nextZ = player.position.z - 45;
   todT = 0; updateSky(0, true);
@@ -1338,7 +1370,7 @@ function endGame() {
   SFX.gameover(); if(isRecord) setTimeout(()=>SFX.record(), 900);
   const timeBonus = Math.floor(t / 5000); const totalGanho = coinsN + timeBonus;
   showMenu(isRecord ? 'NOVO RECORDE!' : 'VOCÊ BATEU!', fmtTime(t), 'Recorde ' + fmtTime(record) + '  ·  +' + totalGanho + ' moedas', 'JOGAR NOVAMENTE', startGame, { menu:true, bank:true, hideGrid:true });
-  if(t > 20000) { const savedName = loadLS('metroPlayerName'); if(savedName) { window.sendScoreToServer(savedName, t, charId); } else { setTimeout(() => askNameAndSend(t), 600); } }
+  if(t > 20000) { const savedName = loadLS('metroPlayerName'); if(savedName && window.sendScoreToServer) { window.sendScoreToServer(savedName, t, charId).catch(()=>{}); } else if (window.sendScoreToServer) { setTimeout(() => askNameAndSend(t), 600); } }
 }
 
 function animateChar(dt, tx) {
@@ -1440,7 +1472,9 @@ function loop() {
 renderer.setAnimationLoop(loop);
 camera.position.set(0,camHeight,player.position.z+camBack); camera.lookAt(0,1.4,player.position.z-12); blob.position.set(0,0.1,3);
 
-initAuth();
+if (window.fbAuth) initAuth();
+else window.addEventListener('fb-ready', initAuth, { once: true });
+
 showMain();
 </script>
 </body>
