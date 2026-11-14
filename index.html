@@ -5,6 +5,42 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Metro Rush</title>
 
+<!-- [UI RESPONSIVA] Ajusta a escala global da UI conforme o viewport real -->
+<script>
+(function () {
+  function applyUIScale() {
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+
+    var scaleW = vw / 390;
+    var scaleH = Math.min(1.15, Math.max(0.72, vh / 780));
+    var scale = Math.min(scaleW, scaleH);
+
+    scale = Math.max(0.72, Math.min(1.18, scale));
+
+    if (vw < 340) scale *= 0.94;
+    if (vw < 300) scale *= 0.92;
+
+    document.documentElement.style.setProperty('--ui-scale', scale.toFixed(3));
+
+    var mv = document.querySelector('meta[name="viewport"]');
+    if (mv) {
+      mv.setAttribute('content',
+        'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover');
+    }
+  }
+
+  applyUIScale();
+  window.addEventListener('resize', applyUIScale);
+  window.addEventListener('orientationchange', function(){ setTimeout(applyUIScale, 100); });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', applyUIScale);
+  }
+  document.addEventListener('DOMContentLoaded', applyUIScale);
+  setTimeout(applyUIScale, 250);
+})();
+</script>
+
 <style>
 :root {
   --accent:#ffd42a;
@@ -16,9 +52,36 @@
   --muted:rgba(255,255,255,.62);
   --danger:#ff6b6b;
   --ok:#4ade80;
+
+  --ui-scale: 1;
+  --hud-pad:    clamp(8px,  2.6vw, 14px);
+  --hud-gap:    clamp(5px,  1.6vw, 9px);
+  --hud-btn:    clamp(34px, 10.5vw, 46px);
+  --hud-font:   clamp(12px, 3.6vw, 17px);
+  --hud-label:  clamp(8px,  2.4vw, 10px);
+  --hud-val:    clamp(14px, 4.2vw, 18px);
+  --card-pad:   clamp(14px, 4.5vw, 26px);
+  --card-gap:   clamp(9px,  2.6vw, 15px);
+  --card-max:   clamp(280px, 92vw, 380px);
+  --card-radius:clamp(14px, 4.4vw, 22px);
+  --btn-pad:    clamp(11px, 3.4vw, 16px);
+  --btn-font:   clamp(12px, 3.6vw, 16px);
+  --title-font: clamp(19px, 6.4vw, 30px);
+  --big-font:   clamp(30px, 10vw,  46px);
+  --sub-font:   clamp(11px, 3.2vw, 14px);
+  --ttl-font:   clamp(11px, 3.2vw, 14px);
+  --stat-font:  clamp(11px, 3.2vw, 14px);
+  --stat-lbl:   clamp(8px,  2.4vw, 10px);
+  --card-h:     clamp(70px, 22vw, 96px);
+  --card-sw:    clamp(24px, 8.4vw, 34px);
+  --input-pad:  clamp(10px, 3.2vw, 14px);
+  --input-font: clamp(13px, 3.8vw, 16px);
+  --close-size: clamp(28px, 9vw,   38px);
 }
+
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; }
+html { font-size: calc(16px * var(--ui-scale)); }
 body {
   overflow:hidden; background:#8fd0f0;
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
@@ -29,175 +92,192 @@ button { font-family:inherit; }
 
 #hud {
   position:absolute;
-  top:calc(12px + env(safe-area-inset-top));
-  left:calc(12px + env(safe-area-inset-left));
-  right:calc(12px + env(safe-area-inset-right));
+  top:calc(var(--hud-pad) + env(safe-area-inset-top));
+  left:calc(var(--hud-pad) + env(safe-area-inset-left));
+  right:calc(var(--hud-pad) + env(safe-area-inset-right));
   display:flex; justify-content:space-between; align-items:flex-start;
   z-index:3; pointer-events:none;
 }
-.hud-left { display:flex; align-items:center; gap:8px; }
+.hud-left { display:flex; align-items:center; gap:var(--hud-gap); min-width:0; }
 #pauseBtn {
-  pointer-events:auto; width:42px; height:42px; border:1px solid var(--line); border-radius:12px;
-  background:rgba(0,0,0,.45); cursor:pointer; transition:transform .1s;
+  pointer-events:auto; width:var(--hud-btn); height:var(--hud-btn); border:1px solid var(--line); border-radius:12px;
+  background:rgba(0,0,0,.45); cursor:pointer; transition:transform .1s; flex:none;
   display:flex; align-items:center; justify-content:center; gap:5px;
 }
 #pauseBtn i { display:block; width:4px; height:15px; border-radius:2px; background:#fff; }
 #pauseBtn:active { transform:scale(.92); }
 .timer-box {
-  background:rgba(0,0,0,.45); padding:0 12px; height:42px; display:flex; align-items:center; border-radius:12px;
-  font-size:16px; font-weight:800; color:#fff; letter-spacing:.5px;
+  background:rgba(0,0,0,.45); padding:0 var(--hud-pad); height:var(--hud-btn); display:flex; align-items:center; border-radius:12px;
+  font-size:var(--hud-font); font-weight:800; color:#fff; letter-spacing:.5px; white-space:nowrap;
   font-variant-numeric:tabular-nums; border:1px solid var(--line); transition:background .2s;
+  min-width:0; overflow:hidden; text-overflow:ellipsis;
 }
 .timer-box.danger { background:rgba(180,20,20,.75); animation:pulseDanger .5s infinite alternate; }
 @keyframes pulseDanger { from { color:#fff; } to { color:#ffcaca; } }
 .hud-right {
-  display:flex; flex-direction:column; gap:2px; min-width:112px;
-  background:rgba(0,0,0,.45); border:1px solid var(--line); border-radius:12px; padding:6px 12px;
+  display:flex; flex-direction:column; gap:2px; min-width:0;
+  background:rgba(0,0,0,.45); border:1px solid var(--line); border-radius:12px;
+  padding:5px var(--hud-pad); flex:none;
 }
-.hud-row { display:flex; justify-content:space-between; align-items:baseline; gap:14px; color:#fff; }
-.hud-row .label { font-size:10px; font-weight:700; letter-spacing:1.2px; color:var(--muted); text-transform:uppercase; }
-.hud-row .val { font-size:18px; font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; }
+.hud-row { display:flex; justify-content:space-between; align-items:baseline; gap:10px; color:#fff; }
+.hud-row .label { font-size:var(--hud-label); font-weight:700; letter-spacing:1px; color:var(--muted); text-transform:uppercase; }
+.hud-row .val { font-size:var(--hud-val); font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; }
 .hud-row .val.white { color:#fff; }
 
 #menu {
   position:absolute; inset:0; display:flex; justify-content:center; align-items:center;
   background:rgba(10,20,40,.55); z-index:5;
-  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
   animation:fadeIn .3s ease; overflow-y:auto;
 }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 .menu-card {
   position:relative; background:var(--panel);
   backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  width:100%; max-width:360px; margin:auto; border-radius:20px; padding:24px 20px 20px;
-  display:flex; flex-direction:column; align-items:stretch; gap:14px;
+  width:100%; max-width:var(--card-max); margin:auto;
+  border-radius:var(--card-radius); padding:var(--card-pad);
+  display:flex; flex-direction:column; align-items:stretch; gap:var(--card-gap);
   border:1px solid var(--line); box-shadow:0 20px 50px rgba(0,0,0,.55);
-  max-height:calc(100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  max-height:calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y:auto; animation:cardIn .25s ease;
 }
 @keyframes cardIn { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:none; } }
-#mTitle { font-size:28px; font-weight:900; color:#fff; letter-spacing:3px; text-align:center; line-height:1.1; text-transform:uppercase; }
-.ttl { font-size:13px; font-weight:800; color:var(--muted); letter-spacing:2px; text-align:center; text-transform:uppercase; padding:0 36px; line-height:36px; margin-top:-6px; }
-#mBig { font-size:44px; font-weight:900; color:#fff; text-align:center; font-variant-numeric:tabular-nums; line-height:1; text-shadow:0 4px 12px rgba(0,0,0,.4); }
-#mSub { font-size:13px; font-weight:600; color:var(--muted); text-align:center; line-height:1.4; }
+#mTitle { font-size:var(--title-font); font-weight:900; color:#fff; letter-spacing:2px; text-align:center; line-height:1.1; text-transform:uppercase; }
+.ttl { font-size:var(--ttl-font); font-weight:800; color:var(--muted); letter-spacing:1.6px; text-align:center; text-transform:uppercase; line-height:1.4; padding:0 36px; margin-top:-4px; }
+#mBig { font-size:var(--big-font); font-weight:900; color:#fff; text-align:center; font-variant-numeric:tabular-nums; line-height:1; text-shadow:0 4px 12px rgba(0,0,0,.4); }
+#mSub { font-size:var(--sub-font); font-weight:600; color:var(--muted); text-align:center; line-height:1.4; }
 #mBig:empty, #mSub:empty { display:none; }
 
 #patBadge {
-  display:none; flex-direction:column; gap:8px; padding:10px 12px; border-radius:12px;
+  display:none; flex-direction:column; gap:6px; padding:8px 10px; border-radius:12px;
   background:rgba(255,255,255,.04); border:1px solid var(--line);
 }
-.pb-top { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; font-weight:700; }
-.pb-name { display:flex; align-items:center; gap:8px; color:var(--pc,#fff); letter-spacing:1px; text-transform:uppercase; font-weight:800; }
-.pb-next { color:var(--muted); font-size:11px; }
-.dot { width:9px; height:9px; border-radius:50%; background:var(--pc,#fff); flex:none; }
+.pb-top { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:var(--stat-lbl); font-weight:700; }
+.pb-name { display:flex; align-items:center; gap:6px; color:var(--pc,#fff); letter-spacing:1px; text-transform:uppercase; font-weight:800; font-size:var(--stat-lbl); }
+.pb-next { color:var(--muted); font-size:var(--stat-lbl); text-align:right; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--pc,#fff); flex:none; }
 .pb-bar { height:4px; border-radius:2px; background:rgba(255,255,255,.1); overflow:hidden; }
 .pb-bar span { display:block; height:100%; background:var(--pc,#fff); border-radius:2px; }
 
 #play, .primary {
-  width:100%; padding:15px; border:0; border-radius:14px; background:var(--accent); color:var(--accent-ink);
-  font-size:16px; font-weight:900; letter-spacing:1.5px; cursor:pointer; text-transform:uppercase;
+  width:100%; padding:var(--btn-pad); border:0; border-radius:12px; background:var(--accent); color:var(--accent-ink);
+  font-size:var(--btn-font); font-weight:900; letter-spacing:1.4px; cursor:pointer; text-transform:uppercase;
   transition:transform .1s, filter .2s;
 }
 #play:hover, .primary:hover { filter:brightness(1.06); }
 #play:active, .primary:active { transform:scale(.98); }
 .primary:disabled { opacity:.4; pointer-events:none; }
 .ghost {
-  width:100%; padding:12px 8px; border:1px solid var(--line-strong); border-radius:12px; background:transparent;
-  color:#fff; font-size:12px; font-weight:700; letter-spacing:1px; cursor:pointer; text-transform:uppercase; transition:all .15s;
+  width:100%; padding:calc(var(--btn-pad) - 2px) 8px; border:1px solid var(--line-strong); border-radius:12px; background:transparent;
+  color:#fff; font-size:var(--stat-lbl); font-weight:700; letter-spacing:1px; cursor:pointer; text-transform:uppercase; transition:all .15s;
 }
 .ghost:hover { background:rgba(255,255,255,.06); }
 .ghost:active { transform:scale(.98); }
 .ghost.danger { color:var(--danger); border-color:rgba(255,107,107,.45); }
 .main-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
 .main-btn {
-  padding:13px 8px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04);
-  color:rgba(255,255,255,.9); font-size:12px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;
+  padding:calc(var(--btn-pad) - 1px) 6px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.9); font-size:var(--stat-lbl); font-weight:800; letter-spacing:1px; text-transform:uppercase;
   cursor:pointer; transition:all .15s;
 }
 .main-btn:hover { background:rgba(255,255,255,.09); border-color:var(--line-strong); }
 .main-btn:active { transform:scale(.97); }
 
-#bankRow { display:none; grid-template-columns:repeat(3,1fr); gap:8px; padding-top:12px; border-top:1px solid var(--line); }
-.stat { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; }
-.stat span { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); }
-.stat b { font-size:14px; font-weight:800; color:#fff; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums; }
+#bankRow { display:none; grid-template-columns:repeat(3,1fr); gap:6px; padding-top:10px; border-top:1px solid var(--line); }
+.stat { display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0; }
+.stat span { font-size:var(--stat-lbl); font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.stat b { font-size:var(--stat-font); font-weight:800; color:#fff; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .stat b.gold { color:var(--accent); }
 
 .modal {
   position:absolute; inset:0; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,.65); z-index:6;
-  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); overflow-y:auto; animation:fadeIn .2s ease;
+  padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+  overflow-y:auto; animation:fadeIn .2s ease;
 }
 .modal.open { display:flex; }
 .modal .menu-card { animation:modalIn .22s ease; }
 @keyframes modalIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:none; } }
 .close-x {
-  position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:50%; border:1px solid var(--line);
-  background:rgba(255,255,255,.05); color:rgba(255,255,255,.8); font-size:22px; line-height:1; cursor:pointer;
+  position:absolute; top:10px; right:10px; width:var(--close-size); height:var(--close-size); border-radius:50%; border:1px solid var(--line);
+  background:rgba(255,255,255,.05); color:rgba(255,255,255,.8); font-size:calc(var(--close-size)*0.6); line-height:1; cursor:pointer;
   display:flex; align-items:center; justify-content:center; transition:all .15s; z-index:2;
 }
 .close-x:hover { background:rgba(255,80,80,.2); border-color:rgba(255,80,80,.5); color:var(--danger); }
 .close-x:active { transform:scale(.9); }
 
-/* [NOME FIXO] Modal sem fechar: não permite fechar até salvar */
 #modalName.locked .close-x { display: none; }
 #modalName.locked { pointer-events: auto; }
 
-.bank { align-self:center; font-size:13px; font-weight:700; color:var(--muted); padding:6px 14px; border-radius:999px; background:rgba(255,212,42,.08); }
-.bank b { color:var(--accent); font-size:15px; margin-left:4px; font-variant-numeric:tabular-nums; }
-#shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+.bank { align-self:center; font-size:var(--stat-font); font-weight:700; color:var(--muted); padding:5px 12px; border-radius:999px; background:rgba(255,212,42,.08); }
+.bank b { color:var(--accent); font-size:calc(var(--stat-font) + 1px); margin-left:4px; font-variant-numeric:tabular-nums; }
+#shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%; }
 .card {
   border:1.5px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04); color:rgba(255,255,255,.88);
-  padding:10px 4px; font-size:11px; font-weight:700; cursor:pointer; transition:all .15s ease;
-  display:flex; flex-direction:column; align-items:center; gap:3px; min-height:88px; justify-content:center;
+  padding:8px 3px; font-size:var(--stat-lbl); font-weight:700; cursor:pointer; transition:all .15s ease;
+  display:flex; flex-direction:column; align-items:center; gap:2px; min-height:var(--card-h); justify-content:center;
+  min-width:0; overflow:hidden;
 }
-.card .pr { font-size:10px; font-weight:800; letter-spacing:.5px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; }
+.card .pr { font-size:var(--stat-lbl); font-weight:800; letter-spacing:.4px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .card.locked { opacity:.7; }
 .card.locked .pr { color:var(--accent); }
 .card.eq .pr { color:var(--ok); }
 .card.sel { border-color:var(--accent); background:rgba(255,212,42,.12); color:var(--accent); opacity:1; }
+.card span:not(.pr) { font-size:var(--stat-lbl); text-align:center; line-height:1.15; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 .sw { display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.28); flex:none; }
-.card .sw { width:32px; height:32px; border-radius:10px; margin-bottom:3px; }
-#shopInfo { font-size:13px; font-weight:700; color:var(--muted); text-align:center; min-height:18px; }
+.card .sw { width:var(--card-sw); height:var(--card-sw); border-radius:8px; margin-bottom:2px; }
+#shopInfo { font-size:var(--stat-font); font-weight:700; color:var(--muted); text-align:center; min-height:16px; }
 
-.cfg-row { display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px; color:#fff; font-size:14px; font-weight:600; padding:10px 0; border-bottom:1px solid var(--line); }
+.cfg-row { display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px; color:#fff; font-size:var(--stat-font); font-weight:600; padding:8px 0; border-bottom:1px solid var(--line); }
 .cfg-row:last-child { border-bottom:0; }
-.cfg-row input[type=range] { width:140px; accent-color:var(--accent); padding:0; border:0; background:none; }
-.tog { min-width:92px; padding:8px 10px; border-radius:10px; border:1px solid var(--line-strong); background:transparent; color:var(--muted); font-weight:800; font-size:11px; letter-spacing:.8px; cursor:pointer; }
+.cfg-row input[type=range] { width:clamp(90px, 38vw, 150px); accent-color:var(--accent); padding:0; border:0; background:none; }
+.tog { min-width:clamp(64px, 24vw, 96px); padding:6px 8px; border-radius:10px; border:1px solid var(--line-strong); background:transparent; color:var(--muted); font-weight:800; font-size:var(--stat-lbl); letter-spacing:.6px; cursor:pointer; }
 .tog.on, .tog.sel { border-color:var(--accent); background:rgba(255,212,42,.14); color:var(--accent); }
 .seg { display:flex; gap:4px; }
-.seg .tog { min-width:0; padding:8px 10px; }
+.seg .tog { min-width:0; padding:6px 7px; }
 
 input {
-  width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line); background:rgba(0,0,0,.3);
-  color:#fff; font-size:16px; font-weight:600; font-family:inherit; outline:none; transition:border .2s;
+  width:100%; padding:var(--input-pad); border-radius:10px; border:1.5px solid var(--line); background:rgba(0,0,0,.3);
+  color:#fff; font-size:var(--input-font); font-weight:600; font-family:inherit; outline:none; transition:border .2s;
 }
 input:focus { border-color:var(--accent); }
 input::placeholder { color:rgba(255,255,255,.4); }
-.form { width:100%; display:flex; flex-direction:column; gap:12px; }
-.form-msg { color:var(--danger); font-size:13px; font-weight:700; text-align:center; min-height:16px; }
-.note { color:var(--muted); font-size:13px; text-align:center; line-height:1.4; }
-.acc-email { font-size:15px; color:var(--accent); font-weight:700; word-break:break-all; text-align:center; }
+.form { width:100%; display:flex; flex-direction:column; gap:10px; }
+.form-msg { color:var(--danger); font-size:var(--stat-font); font-weight:700; text-align:center; min-height:14px; }
+.note { color:var(--muted); font-size:var(--stat-font); text-align:center; line-height:1.4; }
+.acc-email { font-size:var(--stat-font); color:var(--accent); font-weight:700; word-break:break-all; text-align:center; }
 
-.rank-list { width:100%; max-height:55vh; overflow-y:auto; border-radius:12px; background:rgba(0,0,0,.22); border:1px solid var(--line); }
-.rk-msg { color:var(--muted); text-align:center; padding:24px 12px; font-size:14px; }
-.rk-row { display:flex; align-items:center; gap:10px; padding:11px 12px; border-bottom:1px solid var(--line); color:#fff; font-weight:700; font-size:14px; }
+.rank-list { width:100%; max-height:52vh; overflow-y:auto; border-radius:10px; background:rgba(0,0,0,.22); border:1px solid var(--line); }
+.rk-msg { color:var(--muted); text-align:center; padding:20px 10px; font-size:var(--stat-font); }
+.rk-row { display:flex; align-items:center; gap:6px; padding:9px 8px; border-bottom:1px solid var(--line); color:#fff; font-weight:700; font-size:var(--stat-font); }
 .rk-row:last-child { border-bottom:0; }
-.rk-pos { width:24px; text-align:center; color:var(--muted); font-variant-numeric:tabular-nums; }
+.rk-pos { width:20px; text-align:center; color:var(--muted); font-variant-numeric:tabular-nums; flex:none; font-size:var(--stat-lbl); }
 .rk-pos.top1 { color:#ffd42a; } .rk-pos.top2 { color:#d0d4da; } .rk-pos.top3 { color:#d9915a; }
-.rk-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.rk-pat { font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
-.rk-time { font-variant-numeric:tabular-nums; color:var(--accent); font-size:12px; font-weight:800; }
+.rk-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.rk-pat { font-size:var(--stat-lbl); font-weight:800; letter-spacing:.8px; text-transform:uppercase; flex:none; }
+.rk-time { font-variant-numeric:tabular-nums; color:var(--accent); font-size:var(--stat-lbl); font-weight:800; flex:none; }
+.rk-row .sw { width:12px; height:12px; }
 
-#hint { position:absolute; bottom:calc(18px + env(safe-area-inset-bottom)); width:100%; text-align:center; color:#fff; font-size:12px; font-weight:700; letter-spacing:1px; text-shadow:0 2px 6px black; pointer-events:none; transition:opacity 1s; z-index:3; opacity:0; }
+#hint { position:absolute; bottom:calc(16px + env(safe-area-inset-bottom)); width:100%; text-align:center; color:#fff; font-size:var(--stat-font); font-weight:700; letter-spacing:1px; text-shadow:0 2px 6px black; pointer-events:none; transition:opacity 1s; z-index:3; opacity:0; padding:0 12px; }
 #flash { position:absolute; inset:0; background:#f22; opacity:0; pointer-events:none; z-index:2; transition:opacity .35s; }
-#countdown { position:absolute; top:32%; left:0; right:0; text-align:center; font-size:104px; font-weight:900; color:#fff; text-shadow:0 6px 24px rgba(0,0,0,.55); letter-spacing:2px; pointer-events:none; display:none; z-index:7; }
+#countdown { position:absolute; top:28%; left:0; right:0; text-align:center; font-size:clamp(60px, 24vw, 104px); font-weight:900; color:#fff; text-shadow:0 6px 24px rgba(0,0,0,.55); letter-spacing:2px; pointer-events:none; display:none; z-index:7; }
 #countdown.pop { animation:pop .75s ease-out forwards; }
 @keyframes pop { 0% { transform:scale(.4); opacity:0; } 25% { transform:scale(1.15); opacity:1; } 70% { transform:scale(1); opacity:1; } 100% { transform:scale(1.25); opacity:0; } }
-@media (max-height: 640px) {
-  .menu-card { gap:10px; padding:18px 16px 16px; }
-  #mTitle { font-size:22px; } #mBig { font-size:36px; }
-  .card { min-height:76px; padding:8px 4px; } .card .sw { width:26px; height:26px; }
-  .main-btn { padding:10px 6px; }
+
+/* [UI RESPONSIVA] Fallback extremo para telas minúsculas */
+@media (max-width: 320px) {
+  :root {
+    --card-max: 96vw;
+    --card-pad: 12px;
+    --card-gap: 8px;
+    --title-font: 18px;
+    --big-font: 28px;
+    --btn-font: 12px;
+    --btn-pad: 10px;
+    --hud-font: 11px;
+    --hud-btn: 32px;
+  }
+  .main-grid { gap: 5px; }
+  #shopGrid { gap: 4px; }
 }
 </style>
 </head>
@@ -281,7 +361,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
       <div id="profileView" class="form" style="display:none">
         <h1 class="ttl">Minha conta</h1>
         <p class="acc-email" id="profileEmail">email@exemplo.com</p>
-        <!-- [NOME FIXO] Nome permanente em modo leitura -->
         <p class="note" id="profileName" style="font-size:16px;color:#ffd42a;font-weight:900;letter-spacing:1px"></p>
         <p class="note">Seu progresso e ranking estão salvos nesta conta.</p>
         <button class="ghost" id="syncNowBtn">Sincronizar agora</button>
@@ -290,7 +369,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     </div>
   </div>
 
-  <!-- [NOME FIXO] Modal obrigatório de definição de nome (1x só) -->
   <div class="modal" id="modalName">
     <div class="menu-card">
       <button class="close-x" data-close="modalName" aria-label="Fechar" style="display:none">&times;</button>
@@ -316,7 +394,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
 <script type="module">
 import * as THREE from 'three';
 
-(async function() { // <--- INÍCIO DO ESCOPO FECHADO (ISOLAMENTO TOTAL)
+(async function() { // <--- INÍCIO DO ESCOPO FECHADO
 
 if (location.protocol === 'file:') {
   document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
@@ -324,7 +402,7 @@ if (location.protocol === 'file:') {
 }
 
 // ======================================================
-// SISTEMA ANTICHEAT DE STORAGE (HASH CHECKSUM)
+// SISTEMA ANTICHEAT DE STORAGE
 // ======================================================
 const SECRET_SALT = 'MetroRushSecure2026_#k9X!';
 function generateHash(str) {
@@ -335,7 +413,6 @@ function generateHash(str) {
   }
   return hash.toString();
 }
-
 function secureSave(k, v) {
   try {
     const valStr = typeof v === 'string' ? v : JSON.stringify(v);
@@ -343,24 +420,19 @@ function secureSave(k, v) {
     localStorage.setItem(k + '_chk', generateHash(valStr + SECRET_SALT));
   } catch(e) {}
 }
-
 function secureLoad(k, fallback) {
   try {
     const valStr = localStorage.getItem(k);
     const chk = localStorage.getItem(k + '_chk');
     if (valStr === null || chk === null) return fallback;
-
     if (generateHash(valStr + SECRET_SALT) !== chk) {
       console.warn('[AntiCheat] Adulteração detectada em:', k);
       localStorage.removeItem(k);
       localStorage.removeItem(k + '_chk');
       return fallback;
     }
-
     try { return JSON.parse(valStr); } catch(_) { return valStr; }
-  } catch(e) {
-    return fallback;
-  }
+  } catch(e) { return fallback; }
 }
 
 // ======================================================
@@ -400,15 +472,12 @@ try {
         const safeBank = Math.min(Math.max(0, Number(data.bank) || 0), 100000);
         const safeRecord = Math.min(Math.max(0, Number(data.recordMs) || 0), 3600000);
         const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 10) : [];
-
         const ref = firestore.doc(db, 'users', auth.currentUser.uid);
-        // [NOME FIXO] Lê o perfil para saber se o nome já existe (imutável)
         let existingName = '';
         try {
           const snap = await firestore.getDoc(ref);
           if (snap.exists()) existingName = String(snap.data().playerName || '');
         } catch(_) {}
-
         const payload = {
           owned: safeOwned,
           bank: safeBank,
@@ -417,11 +486,7 @@ try {
           email: auth.currentUser.email,
           updatedAt: firestore.serverTimestamp()
         };
-        // [NOME FIXO] Só envia playerName se ainda não existir no perfil
-        if (!existingName) {
-          payload.playerName = String(data.playerName || '').slice(0, 12);
-        }
-
+        if (!existingName) payload.playerName = String(data.playerName || '').slice(0, 12);
         await firestore.setDoc(ref, payload, { merge: true });
         return true;
       } catch(e) { console.error('[Firebase] saveProfile:', e); return false; }
@@ -439,33 +504,26 @@ try {
       try {
         const safeScore = Math.min(Math.max(0, Number(scoreMs) || 0), 3600000);
         const safeRecord = Math.min(Math.max(0, Number(recordMs) || 0), 3600000);
-
         if (safeScore > 600000) return false;
-
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
         const scoreSnap = await firestore.getDoc(scoreRef);
         const oldScore = scoreSnap.exists() ? (scoreSnap.data().score || 0) : 0;
         const oldName = scoreSnap.exists() ? String(scoreSnap.data().name || '') : '';
         const finalScore = Math.max(safeScore, oldScore);
-        // [NOME FIXO] Se já existir nome no score, mantém o antigo (imutável)
         const finalName = oldName || String(name || 'Anônimo').slice(0, 12);
-
         await firestore.setDoc(scoreRef, {
           name: finalName,
           score: Math.floor(finalScore),
           charId: String(charId || 'zumbi'),
           ts: firestore.serverTimestamp()
         });
-
         const profileRef = firestore.doc(db, 'users', auth.currentUser.uid);
         let existingProfileName = '';
         try {
           const profSnap = await firestore.getDoc(profileRef);
           if (profSnap.exists()) existingProfileName = String(profSnap.data().playerName || '');
         } catch(_) {}
-
         const updates = { recordMs: Math.floor(Math.max(safeRecord, oldScore, safeScore)), updatedAt: firestore.serverTimestamp() };
-        // [NOME FIXO] Só define playerName se o perfil ainda não tiver
         if (!existingProfileName && name) updates.playerName = String(name).slice(0, 12);
         if (charId) updates.charId = String(charId);
         await firestore.setDoc(profileRef, updates, { merge: true });
@@ -630,12 +688,22 @@ const camera = new THREE.PerspectiveCamera(65,1,0.1,260);
 let camBack=10, camHeight=5.4, baseFov=65, curFov=65, fovK=0;
 
 function applySize(){ renderer.setPixelRatio(pixelRatio); renderer.setSize(innerWidth,innerHeight); }
+
+// [UI RESPONSIVA] FOV adaptativo para telas estreitas
 function fitCamera(){
   const a = innerWidth/innerHeight;
-  baseFov = a<0.6?84:a<0.9?74:60;
-  curFov=baseFov; camera.aspect=a; camera.fov=baseFov;
-  camBack = a<0.6?11:a<0.9?10:9.5;
-  camHeight = a<0.9?5.8:5.2;
+  const w = innerWidth;
+  if (a < 0.5)       baseFov = 88;
+  else if (a < 0.65) baseFov = 82;
+  else if (a < 0.8)  baseFov = 76;
+  else if (a < 1.0)  baseFov = 70;
+  else               baseFov = 60;
+  if (w < 340) baseFov = Math.min(92, baseFov + 6);
+  curFov = baseFov;
+  camera.aspect = a;
+  camera.fov = baseFov;
+  camBack = a < 0.5 ? 12 : a < 0.65 ? 11.5 : a < 0.9 ? 10.5 : 9.5;
+  camHeight = a < 0.9 ? 6.2 : 5.4;
   camera.updateProjectionMatrix();
 }
 function applyQuality(){
@@ -937,7 +1005,6 @@ const flaps=[];
 function flap(parent,x,y,z,len,w,mat,phase,base){ const p=new THREE.Group(); p.position.set(x,y,z); p.userData={ph:phase||0,b:base||0}; parent.add(p); box(p,w,0.06,len,mat,0,0,len/2); flaps.push(p); return p; }
 function grp(id){ const g=new THREE.Group(); g.visible=false; body.add(g); FX[id]=g; return g; }
 
-// ===== PERSONAGENS =====
 {
   const g = grp('zumbi');
   box(g,0.18,0.14,0.18,M.hair,-0.12,2.46,0.0);
@@ -1365,7 +1432,7 @@ function trySpawnPattern(z0){
 }
 
 // ======================================================
-// ESTADO E FUNÇÕES CRÍTICAS BLINDADAS
+// ESTADO
 // ======================================================
 let running=false, paused=false, dead=false, deadT=0, ended=false, counting=false, countStep=-1, countT=0;
 let speed=START_V, speedK=0, runTimeMs=0, coinsN=0, banked=false;
@@ -1374,7 +1441,7 @@ let stumbleTimer=0, stumbleGrace=0, shake=0;
 let nextZ=0, runT=0, coinSpin=0, dustT=0, windT=0, rigFlashT=0;
 let camX=0, camY=5.4, laneTilt=0, laneYaw=0, laneVelocity=0;
 let prevPlayerX=0, prevPlayerZ=3;
-let prevPlayerY=0; // [FIX RAMPA] Y do frame anterior para checagens de "veio de cima"
+let prevPlayerY=0;
 player.position.set(0,0,3);
 
 applyCharacter(charId);
@@ -1531,7 +1598,6 @@ cv.addEventListener('pointerup', endTrack);
 cv.addEventListener('pointercancel', ()=>{ tracking=false; });
 cv.addEventListener('contextmenu', e=>e.preventDefault());
 
-// [FIX RAMPA] groundAt: aceita folga maior abaixo da superfície inclinada
 function groundAt(x,z,y){
   let g = 0;
   for(const o of obstacles){
@@ -1541,7 +1607,6 @@ function groundAt(x,z,y){
     if(o.kind==='ramp'){
       const t = clamp(((o.z+o.hl)-z)/(2*o.hl),0,1);
       const h = o.top*t;
-      // [FIX RAMPA] folga maior (-1.2) para não atravessar em alta velocidade
       if(y >= h - 1.2 && h > g) g = h;
     } else if(o.walkable){
       if(y >= o.top - 0.15 && o.top > g) g = o.top;
@@ -1554,7 +1619,7 @@ const flashEl = document.getElementById('flash');
 function vibrate(ms){ if(!cfg.vib) return; try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
 
 // ======================================================
-// FUNÇÕES CRÍTICAS DE COLISÃO E MORTE (BLINDADAS)
+// COLISÕES BLINDADAS
 // ======================================================
 const internalCrash = function() {
   if (dead) return;
@@ -1581,7 +1646,6 @@ const internalCheckCollisions = function(pz0, px0){
   const minZ = Math.min(pz0,pz), maxZ = Math.max(pz0,pz);
   const PW = 0.45, PD = 0.45;
   for(const o of obstacles){
-    // [FIX RAMPA] A rampa NUNCA mata. É apoio. Snap para cima se estiver abaixo.
     if(o.kind==='ramp'){
       const rMinZ = o.z-o.hl, rMaxZ = o.z+o.hl;
       const rMinX = o.x-1.0, rMaxX = o.x+1.0;
@@ -1672,7 +1736,6 @@ const syncNowBtn = document.getElementById('syncNowBtn');
 function openModal(id){ const m=document.getElementById(id); if(m) m.classList.add('open'); }
 function closeModal(id){
   const m=document.getElementById(id);
-  // [NOME FIXO] modalName travado não pode fechar
   if(id==='modalName' && m && m.classList.contains('locked')) return;
   if(m) m.classList.remove('open');
   if(id==='modalShop') applyCharacter(charId);
@@ -1725,7 +1788,7 @@ let loggedUser = null;
 let syncInProgress = false;
 let pushDebounce = null;
 let pendingScore = 0;
-let nameRequired = false; // [NOME FIXO]
+let nameRequired = false;
 
 async function pullProfileFromAccount(user){
   if(!user || syncInProgress || !MetroAPI) return;
@@ -1745,7 +1808,6 @@ async function pullProfileFromAccount(user){
     const remoteRecord = Number(remote.recordMs)||0;
     if(remoteRecord > getRecord()) setRecord(remoteRecord);
 
-    // [NOME FIXO] Se a conta tem nome salvo e local não tem, adota o nome da conta
     if(remote.playerName && !getPlayerName()) secureSave(SAVE_KEYS.name, remote.playerName);
 
     if(remote.charId && CHARS.some(c=>c.id===remote.charId) && isOwned(remote.charId)) equipChar(remote.charId);
@@ -1762,13 +1824,11 @@ async function pullProfileFromAccount(user){
     updateAccountUI();
     if(document.getElementById('modalShop').classList.contains('open')) renderShop();
 
-    // [NOME FIXO] Depois de sincronizar, verifica se precisa nome
     maybeRequireName(remote);
   } catch(e){ console.error('[Sync] pull:', e); }
   syncInProgress = false;
 }
 
-// [NOME FIXO] Se a conta logada ainda não tem nome, força escolha (1x só)
 function maybeRequireName(remote){
   if(!MetroAPI || !loggedUser) return;
   const remoteName = remote && remote.playerName ? String(remote.playerName) : '';
@@ -1777,7 +1837,6 @@ function maybeRequireName(remote){
     nameRequired = true;
     setTimeout(()=>openNameModal(true), 500);
   } else if(remoteName && !localName){
-    // já tem nome no servidor: adota local
     secureSave(SAVE_KEYS.name, remoteName);
   }
 }
@@ -1833,8 +1892,6 @@ function openAccount(){
     else authError.textContent = '';
   }
 }
-
-// [NOME FIXO] Mostra o nome permanente na tela da conta (read-only)
 function updateAccountUI(){
   const el = document.getElementById('profileName');
   if (!el) return;
@@ -1884,7 +1941,7 @@ syncNowBtn.onclick = async ()=>{
 };
 
 // ======================================================
-// [NOME FIXO] Modal de nome permanente
+// NOME FIXO
 // ======================================================
 function openNameModal(locked){
   const modal = document.getElementById('modalName');
@@ -1899,7 +1956,6 @@ function openNameModal(locked){
 
 function askNameAndSend(scoreMs){
   pendingScore = scoreMs;
-  // Se já tem nome salvo, não pergunta de novo
   if (getPlayerName() && !nameRequired) {
     if (MetroAPI && loggedUser) {
       MetroAPI.sendScore(getPlayerName(), scoreMs, charId, getRecord()).catch(()=>{});
@@ -1913,7 +1969,6 @@ nameSave.onclick = async ()=>{
   const raw = nameInput.value.trim();
   const name = raw || 'Anônimo';
 
-  // Se já existe nome salvo e NÃO é o fluxo obrigatório, bloqueia
   if (getPlayerName() && !nameRequired) {
     closeModal('modalName');
     return;
@@ -1922,10 +1977,8 @@ nameSave.onclick = async ()=>{
   nameSave.disabled = true;
   nameSave.textContent = 'SALVANDO...';
 
-  // Grava localmente (permanente)
   secureSave(SAVE_KEYS.name, name);
 
-  // Grava no Firestore (regras impedem troca depois)
   if (MetroAPI && loggedUser) {
     try {
       await MetroAPI.sendScore(name, pendingScore, charId, getRecord());
@@ -2089,7 +2142,6 @@ addEventListener('keydown', e=>{
   const k = e.key; const kk = k.toLowerCase();
   if(k.startsWith('Arrow') || k===' ' || k==='Spacebar') e.preventDefault();
 
-  // [NOME FIXO] Modal de nome travado não fecha com Escape
   const modalNameEl = document.getElementById('modalName');
   if(modalNameEl && modalNameEl.classList.contains('open') && modalNameEl.classList.contains('locked')){
     if(k==='Enter') nameSave.click();
@@ -2139,7 +2191,6 @@ function resetRun(){
 }
 
 function startGame(){
-  // [NOME FIXO] Se está logado mas sem nome, exige antes de jogar
   if (MetroAPI && loggedUser && !getPlayerName()) {
     nameRequired = true;
     pendingScore = 0;
@@ -2194,9 +2245,7 @@ function endGame(){
   if(MetroAPI && loggedUser){
     MetroAPI.sendScore(getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
   }
-  // [NOME FIXO] Se não está logado, não pergunta nome (conta é o que guarda)
   if(t>20000 && !loggedUser && MetroAPI){
-    // antigo comportamento offline; mantido por compatibilidade
     setTimeout(()=>askNameAndSend(t), 600);
   }
 }
