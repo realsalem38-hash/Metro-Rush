@@ -1430,7 +1430,11 @@ const SFX = {
   record(){ [523,659,784,1046].forEach((f,i)=>playTone({f1:f,f2:f,dur:0.2,type:'square',vol:0.05,delay:i*0.09})); },
   buy(){ playTone({f1:700,f2:1400,dur:0.18,type:'square',vol:0.055,attack:0.004}); playTone({f1:1400,f2:2100,dur:0.16,type:'sine',vol:0.04,attack:0.003,delay:0.08}); },
   equip(){ playTone({f1:500,f2:900,dur:0.12,type:'triangle',vol:0.045}); },
-  ui(){ playTone({f1:620,f2:780,dur:0.04,type:'sine',vol:0.02}); }
+  ui(){ playTone({f1:620,f2:780,dur:0.04,type:'sine',vol:0.02}); },
+  countdown(i){
+    const f = [660, 820, 990, 1320][i] || 1320;
+    playTone({ f1:f, f2:f, dur:0.09, type:'square', vol:0.06, attack:0.003 });
+  }
 };
 
 const mtof = m=>440*Math.pow(2,(m-69)/12);
@@ -1925,6 +1929,7 @@ function showMenu(title, big, sub, btnTxt, action, opts){
   mTitle.textContent = title;
   mBig.textContent = big || '';
   mSub.textContent = sub || '';
+  mSub.style.whiteSpace = 'normal';
   playBtn.textContent = btnTxt;
   playBtn.onclick = action;
   bankRow.style.display = opts.bank ? 'grid' : 'none';
@@ -2233,19 +2238,27 @@ function adapt(rawDt){
 function loop(){
   const raw = clock.getDelta();
   const dt = Math.min(raw, 0.034);
-  if(!document.querySelector('#modalShop.open')){
-    if(!isOwned(charId)){ charId = CHARS[0].id; secureSave(SAVE_KEYS.char, charId); }
-    if(curChar.id !== charId) applyCharacter(charId);
+  try {
+    if(!document.querySelector('#modalShop.open')){
+      if(!isOwned(charId)){ charId = CHARS[0].id; secureSave(SAVE_KEYS.char, charId); }
+      if(curChar.id !== charId) applyCharacter(charId);
+    }
+    if(running && !paused){ update(dt); adapt(raw); }
+    if(!running && !dead){
+      rig.rotation.y = Math.sin(performance.now()/1200)*0.35;
+      animateChar(dt,0);
+    } else {
+      rig.rotation.y = laneYaw;
+    }
+    if(!paused){ if(!running) coinSpin += dt*4; updateParticles(dt); updateCamera(dt); }
+  } catch(err) {
+    console.error('[Loop] erro durante update:', err);
   }
-  if(running && !paused){ update(dt); adapt(raw); }
-  if(!running && !dead){
-    rig.rotation.y = Math.sin(performance.now()/1200)*0.35;
-    animateChar(dt,0);
-  } else {
-    rig.rotation.y = laneYaw;
+  try {
+    renderer.render(scene, camera);
+  } catch(err) {
+    console.error('[Loop] erro durante render:', err);
   }
-  if(!paused){ if(!running) coinSpin += dt*4; updateParticles(dt); updateCamera(dt); }
-  renderer.render(scene, camera);
 }
 
 renderer.setAnimationLoop(loop);
