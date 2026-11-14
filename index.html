@@ -481,7 +481,7 @@ try {
       try {
         const safeBank = Math.min(Math.max(0, Number(data.bank) || 0), 100000);
         const safeRecord = Math.min(Math.max(0, Number(data.recordMs) || 0), 3600000);
-        const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 10) : [];
+        const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 20) : [];
         const ref = firestore.doc(db, 'users', auth.currentUser.uid);
         let existingName = '';
         try {
@@ -669,16 +669,19 @@ function fmtTime(ms) {
 }
 
 const CHARS = [
-  { id:'zumbi',    name:'Zumbi',       price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
-  { id:'robo',     name:'Robô',        price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
-  { id:'ninja',    name:'Ninja',       price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
-  { id:'samurai',  name:'Samurai',     price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
-  { id:'pirata',   name:'Pirata',      price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
-  { id:'rei',      name:'Rei',         price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
-  { id:'astro',    name:'Astronauta',  price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
-  { id:'capoeira', name:'Capoeirista', price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
-  { id:'mittens',  name:'Mittens',     price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
-  { id:'salem',    name:'Salém',       price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false }
+  { id:'zumbi',     name:'Zumbi',         price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
+  { id:'robo',      name:'Robô',          price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
+  { id:'ninja',     name:'Ninja',         price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
+  { id:'samurai',   name:'Samurai',       price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
+  { id:'pirata',    name:'Pirata',        price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
+  { id:'rei',       name:'Rei',           price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
+  { id:'astro',     name:'Astronauta',    price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
+  { id:'vampiro',   name:'Vampiro',       price:1000, torso:0x1e1e24, belt:0x8b1e2d, legs:0x1e1e24, skin:0xe9ddd5, shoe:0x111111, hair:0x16161b, accent:0x8b1e2d, armsFwd:false },
+  { id:'capoeira',  name:'Capoeirista',   price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
+  { id:'taty',      name:'Taty',          price:2500, torso:0xc83a3a, belt:0x2b3440, legs:0x2b3440, skin:0xd9a47e, shoe:0x222222, hair:0x2a1d1a, accent:0xc83a3a, armsFwd:false },
+  { id:'mittens',   name:'Mittens',       price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
+  { id:'salem',     name:'Salém',         price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false },
+  { id:'cavaleiro', name:'Cav. Fantasma', price:7500, torso:0x8fa6bd, belt:0x5dd9e6, legs:0x6f86a0, skin:0xa9bcd0, shoe:0x3a4a5c, hair:0xa9bcd0, accent:0x5dd9e6, armsFwd:false }
 ];
 const hex6 = n => '#' + n.toString(16).padStart(6,'0');
 function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
@@ -1304,6 +1307,49 @@ let capeG;
   mittensFeet.push(box(legL,0.36,0.06,0.56,M.white,0,-0.93,-0.08));
   mittensFeet.push(box(legR,0.36,0.06,0.56,M.white,0,-0.93,-0.08));
   for(const p of mittensFeet) p.visible = false;
+}
+
+// ---- NOVOS PERSONAGENS: Vampiro, Cavaleiro fantasma e Taty ----
+M.ghost = L(0xa9bcd0,{emissive:0x1b2f40,transparent:true,opacity:0.85});
+{
+  const g = grp('vampiro');
+  box(g,0.62,0.14,0.62,M.hair,0,2.4,0.02);
+  box(g,0.16,0.14,0.1,M.hair,0,2.34,-0.3);
+  box(g,0.08,0.08,0.04,M.glowR,-0.12,2.15,-0.33);
+  box(g,0.08,0.08,0.04,M.glowR, 0.12,2.15,-0.33);
+  box(g,0.04,0.1,0.03,M.white,-0.06,1.98,-0.34);
+  box(g,0.04,0.1,0.03,M.white, 0.06,1.98,-0.34);
+  box(g,0.14,0.5,0.1,M.cape,-0.32,1.8,0.0);
+  box(g,0.14,0.5,0.1,M.cape, 0.32,1.8,0.0);
+  box(g,0.16,0.5,0.03,M.white,0,1.5,-0.24);
+  flap(g,0,1.85,0.26,1.1,0.9,M.cape,0,1.1);
+}
+{
+  const g = grp('cavaleiro');
+  box(g,0.78,0.78,0.76,M.ghost,0,2.1,0);
+  box(g,0.5,0.09,0.04,M.dark,0,2.12,-0.39);
+  box(g,0.1,0.07,0.04,M.glowC,-0.12,2.12,-0.41);
+  box(g,0.1,0.07,0.04,M.glowC, 0.12,2.12,-0.41);
+  box(g,0.1,0.35,0.5,M.glowC,0,2.62,0.05);
+  ball(g,0.22,M.ghost,-0.55,1.88,0);
+  ball(g,0.22,M.ghost, 0.55,1.88,0);
+  box(g,0.84,0.55,0.05,M.ghost,0,1.55,-0.25);
+  box(g,0.06,0.4,0.04,M.glowC,0,1.55,-0.29);
+  const sw = new THREE.Group(); sw.position.set(0,1.5,0.34); sw.rotation.z=-0.55; g.add(sw);
+  box(sw,0.07,1.25,0.09,M.metal,0,0,0);
+  box(sw,0.22,0.04,0.16,M.glowC,0,0.6,0);
+  flap(g,0,1.85,0.26,1.0,0.8,M.ghost,0.5,1.1);
+}
+{
+  const g = grp('taty');
+  box(g,0.78,0.2,0.74,M.hair,0,2.36,0.02);
+  box(g,0.14,0.7,0.5,M.hair,-0.38,2.0,0.1);
+  box(g,0.14,0.7,0.5,M.hair, 0.38,2.0,0.1);
+  box(g,0.7,0.8,0.14,M.hair,0,1.95,0.3);
+  box(g,0.07,0.07,0.04,M.dark,-0.11,2.15,-0.33);
+  box(g,0.07,0.07,0.04,M.dark, 0.11,2.15,-0.33);
+  box(g,0.22,0.05,0.03,M.white,0,1.99,-0.34);
+  box(g,0.12,0.9,0.03,M.dark,0.2,1.45,-0.24);
 }
 
 const blob = new THREE.Mesh(
