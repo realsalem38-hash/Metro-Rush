@@ -359,12 +359,17 @@ try {
     saveProfile: async (data) => {
       if (!auth.currentUser) return false;
       try {
+        // TRAVA DE SEGURANÇA NO CÓDIGO: Corta valores hackeados antes de enviar
+        const safeBank = Math.min(Math.max(0, Number(data.bank) || 0), 100000);
+        const safeRecord = Math.min(Math.max(0, Number(data.recordMs) || 0), 3600000);
+        const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 10) : [];
+
         const ref = firestore.doc(db, 'users', auth.currentUser.uid);
         await firestore.setDoc(ref, {
-          owned: Array.isArray(data.owned) ? data.owned : [],
-          bank: Number(data.bank) || 0,
+          owned: safeOwned,
+          bank: safeBank,
           charId: String(data.charId || 'zumbi'),
-          recordMs: Number(data.recordMs) || 0,
+          recordMs: safeRecord,
           playerName: String(data.playerName || '').slice(0, 12),
           email: auth.currentUser.email,
           updatedAt: firestore.serverTimestamp()
@@ -383,10 +388,14 @@ try {
     sendScore: async (uid, name, scoreMs, charId, recordMs) => {
       if (!auth.currentUser) return false;
       try {
+        // TRAVA DE SEGURANÇA NO CÓDIGO
+        const safeScore = Math.min(Math.max(0, Number(scoreMs) || 0), 3600000);
+        const safeRecord = Math.min(Math.max(0, Number(recordMs) || 0), 3600000);
+
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
         const scoreSnap = await firestore.getDoc(scoreRef);
         const oldScore = scoreSnap.exists() ? (scoreSnap.data().score || 0) : 0;
-        const finalScore = Math.max(scoreMs || 0, oldScore);
+        const finalScore = Math.max(safeScore, oldScore);
         
         await firestore.setDoc(scoreRef, {
           name: String(name || 'Anônimo').slice(0, 12),
@@ -396,7 +405,7 @@ try {
         });
         
         const profileRef = firestore.doc(db, 'users', auth.currentUser.uid);
-        const updates = { recordMs: Math.floor(Math.max(recordMs || scoreMs || 0, oldScore)), updatedAt: firestore.serverTimestamp() };
+        const updates = { recordMs: Math.floor(Math.max(safeRecord, oldScore)), updatedAt: firestore.serverTimestamp() };
         if (name) updates.playerName = String(name).slice(0, 12);
         if (charId) updates.charId = String(charId);
         await firestore.setDoc(profileRef, updates, { merge: true });
@@ -511,6 +520,12 @@ function clearLocalData(){
 function checkLoginState(){
   if (!MetroAPI) return true; // Se Firebase falhar, deixa jogar offline
   return loggedUser !== null;
+}
+
+// LIMPEZA DE EMERGÊNCIA AO CARREGAR A PÁGINA
+// Se os dados locais estiverem absurdamente altos, limpa para evitar que voltem ao Firebase
+if (bank > 100000 || getRecord() > 3600000) {
+  clearLocalData();
 }
 
 // ======================================================
@@ -1311,6 +1326,7 @@ function bankRun(){
   if(coinsN>0 || runTimeMs>5000){
     const timeBonus = Math.floor(runTimeMs/5000);
     bank = Math.floor(bank + coinsN + timeBonus);
+    if (bank > 100000) bank = 100000; // TRAVA LOCAL
     saveBank();
   }
 }
@@ -1922,9 +1938,6 @@ function resetRun(){
 }
 
 function startGame(){
-  // BLOQUEIO DE JOGO: Exige conta para jogar (descomente a linha abaixo se quiser bloquear)
-  // if(!checkLoginState()){ alert('Entre na sua conta para jogar e salvar seu recorde.'); openAccount(); openModal('modalAcc'); return; }
-  
   applyCharacter(charId);
   ensureAudio(); resetRun(); running=true; menu.style.display='none';
   if(!loadLS('metroTutorialSeen')){
