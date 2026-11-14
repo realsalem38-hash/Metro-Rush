@@ -318,10 +318,25 @@ input::placeholder { color:rgba(255,255,255,.4); }
 </script>
 
 <script type="module">
+  // --- SISTEMA SEGURO DO FIREBASE (Sem acesso pelo window) ---
+  let db, auth;
+  let createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut;
+  let doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, serverTimestamp;
+  let firebaseReady = false;
+
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+    const firestore = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const authModule = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+
+    doc = firestore.doc; setDoc = firestore.setDoc; getDoc = firestore.getDoc;
+    collection = firestore.collection; query = firestore.query; orderBy = firestore.orderBy;
+    limit = firestore.limit; getDocs = firestore.getDocs; serverTimestamp = firestore.serverTimestamp;
+
+    createUserWithEmailAndPassword = authModule.createUserWithEmailAndPassword;
+    signInWithEmailAndPassword = authModule.signInWithEmailAndPassword;
+    onAuthStateChanged = authModule.onAuthStateChanged;
+    signOut = authModule.signOut;
 
     const firebaseConfig = {
       apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
@@ -333,88 +348,79 @@ input::placeholder { color:rgba(255,255,255,.4); }
     };
 
     const fbApp = initializeApp(firebaseConfig);
-    const db = getFirestore(fbApp);
-    const auth = getAuth(fbApp);
+    db = firestore.getFirestore(fbApp);
+    auth = authModule.getAuth(fbApp);
+    firebaseReady = true;
+  } catch (err) {
+    console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
+  }
 
-    window.fbAuth = {
-      auth,
+  // Funções encapsuladas que o HTML vai usar
+  const API = {
+    auth: {
       createUser: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
       signIn: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
       signOut: () => signOut(auth),
-      onChange: (cb) => onAuthStateChanged(auth, cb)
-    };
-
-    window.saveProfileToServer = async (data) => {
+      onChange: (cb) => onAuthStateChanged(auth, cb),
+      get currentUser() { return auth ? auth.currentUser : null; }
+    },
+    saveProfile: async (data) => {
+      if (!auth || !auth.currentUser) return false;
       try {
-        const user = auth.currentUser;
-        if (!user) return false;
-        const ref = doc(db, 'users', user.uid);
+        const ref = doc(db, 'users', auth.currentUser.uid);
         await setDoc(ref, {
           owned: Array.isArray(data.owned) ? data.owned : [],
           bank: Number(data.bank) || 0,
           charId: String(data.charId || 'zumbi'),
           recordMs: Number(data.recordMs) || 0,
           playerName: String(data.playerName || '').slice(0, 12),
-          email: user.email,
+          email: auth.currentUser.email,
           updatedAt: serverTimestamp()
         }, { merge: true });
         return true;
       } catch(e) { console.error('[Firebase] saveProfile:', e); return false; }
-    };
-
-    window.loadProfileFromServer = async () => {
+    },
+    loadProfile: async () => {
+      if (!auth || !auth.currentUser) return null;
       try {
-        const user = auth.currentUser;
-        if (!user) return null;
-        const ref = doc(db, 'users', user.uid);
+        const ref = doc(db, 'users', auth.currentUser.uid);
         const snap = await getDoc(ref);
-        if (!snap.exists()) return null;
-        return snap.data();
+        return snap.exists() ? snap.data() : null;
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
-    };
-
-    window.sendScoreToServer = async (uid, name, scoreMs, charId, recordMs) => {
+    },
+    sendScore: async (uid, name, scoreMs, charId, recordMs) => {
+      if (!auth || !auth.currentUser) return false;
       try {
-        const user = auth.currentUser;
-        const realUid = user ? user.uid : uid;
-        if (!realUid) return false;
-        const scoreRef = doc(db, 'scores', realUid);
+        const scoreRef = doc(db, 'scores', auth.currentUser.uid);
         const scoreSnap = await getDoc(scoreRef);
         const oldScore = scoreSnap.exists() ? (scoreSnap.data().score || 0) : 0;
         const finalScore = Math.max(scoreMs || 0, oldScore);
+        
         await setDoc(scoreRef, {
           name: String(name || 'Anônimo').slice(0, 12),
           score: Math.floor(finalScore),
           charId: String(charId || 'zumbi'),
           ts: serverTimestamp()
         });
-        if (user) {
-          const profileRef = doc(db, 'users', user.uid);
-          const updates = { recordMs: Math.floor(Math.max(recordMs || scoreMs || 0, oldScore)), updatedAt: serverTimestamp() };
-          if (name) updates.playerName = String(name).slice(0, 12);
-          if (charId) updates.charId = String(charId);
-          await setDoc(profileRef, updates, { merge: true });
-        }
+        
+        const profileRef = doc(db, 'users', auth.currentUser.uid);
+        const updates = { recordMs: Math.floor(Math.max(recordMs || scoreMs || 0, oldScore)), updatedAt: serverTimestamp() };
+        if (name) updates.playerName = String(name).slice(0, 12);
+        if (charId) updates.charId = String(charId);
+        await setDoc(profileRef, updates, { merge: true });
         return true;
       } catch(e) { console.error('[Firebase] sendScore:', e); return false; }
-    };
-
-    window.fetchTop10 = async () => {
+    },
+    fetchTop10: async () => {
+      if (!db) return [];
       try {
         const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
         const snap = await getDocs(q);
         return snap.docs.map(d => d.data());
       } catch(e) { console.error('[Firebase] fetchTop10:', e); return []; }
-    };
+    }
+  };
 
-  } catch (err) {
-    console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
-    window.fbAuth = null;
-    window.saveProfileToServer = async () => false;
-    window.loadProfileFromServer = async () => null;
-    window.sendScoreToServer = async () => false;
-    window.fetchTop10 = async () => [];
-  }
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 <script type="module">
@@ -1580,18 +1586,22 @@ function updateBankRow(){
 }
 
 // ======================================================
-// SINCRONIZAÇÃO
+// SINCRONIZAÇÃO (Refatorada para usar a API segura)
 // ======================================================
 let loggedUser = null;
 let syncInProgress = false;
 let pushDebounce = null;
+let MetroAPI = null;
+window.addEventListener('fb-ready', () => {
+  MetroAPI = window.MetroAPI;
+  window.MetroAPI = null; // Proteção: remove do window para evitar acesso via console
+}, { once: true });
 
 async function pullProfileFromAccount(user){
-  if(!user || syncInProgress) return;
-  if(!window.loadProfileFromServer) return;
+  if(!user || syncInProgress || !MetroAPI) return;
   syncInProgress = true;
   try{
-    const remote = await window.loadProfileFromServer();
+    const remote = await MetroAPI.loadProfile();
     if(!remote){ await pushProfileToAccount(); syncInProgress=false; return; }
 
     const localOwned = loadOwned();
@@ -1623,9 +1633,9 @@ async function pullProfileFromAccount(user){
   syncInProgress = false;
 }
 async function pushProfileToAccount(){
-  if(!window.saveProfileToServer || !loggedUser) return;
+  if(!MetroAPI || !loggedUser) return;
   try{
-    await window.saveProfileToServer({
+    await MetroAPI.saveProfile({
       owned, bank, charId,
       recordMs: getRecord(),
       playerName: getPlayerName()
@@ -1643,8 +1653,8 @@ function schedulePush(){
 // ======================================================
 let isRegisterMode = false;
 function initAuth(){
-  if(!window.fbAuth) return;
-  window.fbAuth.onChange(async (user)=>{
+  if(!MetroAPI) return;
+  MetroAPI.auth.onChange(async (user)=>{
     loggedUser = user;
     if(user){
       profileEmail.textContent = user.email;
@@ -1665,7 +1675,7 @@ function openAccount(){
   } else {
     authForm.style.display = 'flex';
     profileView.style.display = 'none';
-    if(!window.fbAuth) authError.textContent = 'Modo offline — login indisponível.';
+    if(!MetroAPI) authError.textContent = 'Modo offline — login indisponível.';
     else authError.textContent = '';
   }
 }
@@ -1677,14 +1687,14 @@ authToggle.onclick = ()=>{
   authError.textContent = '';
 };
 authBtn.onclick = async ()=>{
-  if(!window.fbAuth){ authError.textContent = 'Servidor indisponível. Jogue offline.'; return; }
+  if(!MetroAPI){ authError.textContent = 'Servidor indisponível. Jogue offline.'; return; }
   const email = authEmail.value.trim(), pass = authPass.value;
   if(!email || !pass){ authError.textContent = 'Preencha e-mail e senha.'; return; }
   if(pass.length<6){ authError.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
   authBtn.disabled = true; authBtn.textContent = 'Aguarde...'; authError.textContent = '';
   try{
-    if(isRegisterMode) await window.fbAuth.createUser(email,pass);
-    else await window.fbAuth.signIn(email,pass);
+    if(isRegisterMode) await MetroAPI.auth.createUser(email,pass);
+    else await MetroAPI.auth.signIn(email,pass);
   } catch(err){
     console.error(err);
     if(err.code==='auth/email-already-in-use') authError.textContent = 'Este e-mail já está em uso.';
@@ -1697,7 +1707,7 @@ authBtn.onclick = async ()=>{
   }
 };
 logoutBtn.onclick = async ()=>{
-  if(window.fbAuth){ try{ await window.fbAuth.signOut(); }catch(e){} }
+  if(MetroAPI){ try{ await MetroAPI.auth.signOut(); }catch(e){} }
   closeModal('modalAcc'); showMain();
 };
 changeNameBtn.onclick = ()=>{ pendingScore = getRecord(); openModal('modalName'); nameInput.value = getPlayerName(); setTimeout(()=>nameInput.focus(), 200); };
@@ -1717,8 +1727,8 @@ syncNowBtn.onclick = async ()=>{
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 async function openRanking(){
   rankList.innerHTML = '<div class="rk-msg">Carregando...</div>';
-  if(!window.fetchTop10){ rankList.innerHTML = '<div class="rk-msg">Modo offline — ranking indisponível.</div>'; return; }
-  const top = await window.fetchTop10();
+  if(!MetroAPI){ rankList.innerHTML = '<div class="rk-msg">Modo offline — ranking indisponível.</div>'; return; }
+  const top = await MetroAPI.fetchTop10();
   if(top.length===0){ rankList.innerHTML = '<div class="rk-msg">Ninguém no ranking ainda. Seja o primeiro!</div>'; return; }
   rankList.innerHTML = top.map((r,i)=>{
     const ch = CHARS.find(c=>c.id===r.charId);
@@ -1739,8 +1749,8 @@ nameSave.onclick = async ()=>{
   const name = nameInput.value.trim() || 'Anônimo';
   saveLS(SAVE_KEYS.name, name);
   closeModal('modalName');
-  if(window.sendScoreToServer){
-    try{ await window.sendScoreToServer(null, name, pendingScore, charId, getRecord()); }catch(e){}
+  if(MetroAPI){
+    try{ await MetroAPI.sendScore(null, name, pendingScore, charId, getRecord()); }catch(e){}
   }
   schedulePush();
   showMain();
@@ -1951,14 +1961,14 @@ function endGame(){
 
   showMenu(titulo, fmtTime(t), sub, 'JOGAR NOVAMENTE', startGame, {menu:true, bank:true, hideGrid:true});
 
-  if(window.sendScoreToServer && loggedUser){
-    window.sendScoreToServer(loggedUser.uid, getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
+  if(MetroAPI && loggedUser){
+    MetroAPI.sendScore(loggedUser.uid, getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
   }
   if(t>20000){
     const savedName = getPlayerName();
-    if(savedName && window.sendScoreToServer){
-      window.sendScoreToServer(loggedUser?.uid, savedName, record, charId, record).catch(()=>{});
-    } else if(window.sendScoreToServer && !loggedUser){
+    if(savedName && MetroAPI){
+      MetroAPI.sendScore(loggedUser?.uid, savedName, record, charId, record).catch(()=>{});
+    } else if(MetroAPI && !loggedUser){
       setTimeout(()=>askNameAndSend(t), 600);
     }
   }
@@ -2163,12 +2173,12 @@ camera.position.set(0, camHeight, player.position.z+camBack);
 camera.lookAt(0, 1.4, player.position.z-12);
 blob.position.set(0, 0.1, 3);
 
-if(window.fbAuth) initAuth();
+if(MetroAPI) initAuth();
 else window.addEventListener('fb-ready', initAuth, { once: true });
 
 window.addEventListener('beforeunload', ()=>{
-  if(loggedUser && window.saveProfileToServer){
-    window.saveProfileToServer({ owned, bank, charId, recordMs: getRecord(), playerName: getPlayerName() });
+  if(loggedUser && MetroAPI){
+    MetroAPI.saveProfile({ owned, bank, charId, recordMs: getRecord(), playerName: getPlayerName() });
   }
 });
 
