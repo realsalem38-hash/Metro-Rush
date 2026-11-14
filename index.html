@@ -342,14 +342,14 @@ function secureLoad(k, fallback) {
     const valStr = localStorage.getItem(k);
     const chk = localStorage.getItem(k + '_chk');
     if (valStr === null || chk === null) return fallback;
-    
+
     if (generateHash(valStr + SECRET_SALT) !== chk) {
       console.warn('[AntiCheat] Adulteração detectada em:', k);
       localStorage.removeItem(k);
       localStorage.removeItem(k + '_chk');
       return fallback;
     }
-    
+
     try { return JSON.parse(valStr); } catch(_) { return valStr; }
   } catch(e) {
     return fallback;
@@ -1511,7 +1511,9 @@ function groundAt(x,z,y){
       const t = clamp(((o.z+o.hl)-z)/(2*o.hl),0,1);
       const h = o.top*t;
       if(y>=h-0.8 && h>g) g = h;
-    } else if(o.walkable && y>=o.top-0.4){ if(o.top>g) g = o.top; }
+    } else if(o.walkable){
+      if(y >= o.top - 0.15 && o.top > g) g = o.top;
+    }
   }
   return g;
 }
@@ -1568,24 +1570,30 @@ const internalCheckCollisions = function(pz0, px0){
     if(maxX < oMinX-PW || minX > oMaxX+PW) continue;
     if(o.kind==='train'){
       const top = o.top;
-      if(py >= top-0.3) continue;
+      if(py >= top - 0.15) continue;
       if(internalOnHit(true, true)) return;
       continue;
     }
     if(o.kind==='low'){
+      // Agachar/slide passa por baixo NÃO — placa baixa exige PULO.
       if(py >= 0.95) continue;
       const wasInZ0 = (pz0 >= oMinZ && pz0 <= oMaxZ);
       const dx = Math.abs(px - o.x);
       const hitFront = !wasInZ0 || dx < 0.6;
-      if(internalOnHit(hitFront, false)) return;
+      // ANTES: internalOnHit(hitFront, false) → só tropeço (godmode)
+      // AGORA: solid=true → MORTE na hora
+      if(internalOnHit(hitFront, true)) return;
       continue;
     }
     if(o.kind==='over'){
+      // Deslizar (slide) passa por baixo da placa alta.
       if(sliding) continue;
       const wasInZ0 = (pz0 >= oMinZ && pz0 <= oMaxZ);
       const dx = Math.abs(px - o.x);
       const hitFront = !wasInZ0 || dx < 0.6;
-      if(internalOnHit(hitFront, false)) return;
+      // ANTES: internalOnHit(hitFront, false) → só tropeço (godmode)
+      // AGORA: solid=true → MORTE na hora
+      if(internalOnHit(hitFront, true)) return;
       continue;
     }
   }
@@ -2136,8 +2144,11 @@ function update(dt){
 
   const px = player.position.x, pz = player.position.z;
   const g = groundAt(px, pz, player.position.y);
-  if(onGround && g > player.position.y + 0.01) player.position.y = g;
-  if(onGround){ if(g < player.position.y-0.06){ onGround=false; vy=0; } else player.position.y = g; }
+  if(onGround){
+    if(g < player.position.y - 0.06){ onGround = false; vy = 0; }
+    else if(g <= player.position.y + 0.05){ player.position.y = g; }
+    else { onGround = false; vy = 0; }
+  }
   if(!onGround){
     vy -= GRAV*dt;
     player.position.y += vy*dt;
@@ -2150,7 +2161,6 @@ function update(dt){
   }
   if(sliding){ slideT -= dt; if(slideT<=0) sliding = false; }
   
-  // Executa a checagem blindada
   internalCheckCollisions(pz0, px0); 
   if(dead) return;
 
