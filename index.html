@@ -6,6 +6,17 @@
 <title>Metro Rush</title>
 
 <style>
+:root {
+  --accent:#ffd42a;
+  --accent-ink:#2b1c00;
+  --panel:rgba(18,23,38,.96);
+  --line:rgba(255,255,255,.10);
+  --line-strong:rgba(255,255,255,.22);
+  --text:#fff;
+  --muted:rgba(255,255,255,.62);
+  --danger:#ff6b6b;
+  --ok:#4ade80;
+}
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { width:100%; height:100%; }
 body {
@@ -14,91 +25,187 @@ body {
   touch-action:none; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
 }
 canvas { display:block; touch-action:none; outline:none; }
+button { font-family:inherit; }
+
+/* ---------- HUD ---------- */
 #hud {
   position:absolute;
-  top:calc(14px + env(safe-area-inset-top));
-  left:calc(14px + env(safe-area-inset-left));
-  right:calc(14px + env(safe-area-inset-right));
+  top:calc(12px + env(safe-area-inset-top));
+  left:calc(12px + env(safe-area-inset-left));
+  right:calc(12px + env(safe-area-inset-right));
   display:flex; justify-content:space-between; align-items:flex-start;
   z-index:3; pointer-events:none;
 }
-.hud-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
-.hud-row { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:900; color:white; text-shadow:0 2px 4px rgba(0,0,0,.5); letter-spacing:1px; }
-.hud-row .label { font-size:11px; opacity:.85; }
-.hud-row .val { color:#ffe32e; font-size:22px; line-height:1; font-variant-numeric:tabular-nums; }
-.hud-left { display:flex; align-items:center; gap:10px; }
-.timer-box {
-  background:rgba(0,0,0,.5); padding:8px 12px; border-radius:12px;
-  font-size:16px; font-weight:900; color:white; letter-spacing:.5px;
-  font-variant-numeric:tabular-nums;
-  border:1px solid rgba(255,255,255,.12); transition:background .2s, color .2s;
+.hud-left { display:flex; align-items:center; gap:8px; }
+#pauseBtn {
+  pointer-events:auto; width:42px; height:42px; border:1px solid var(--line); border-radius:12px;
+  background:rgba(0,0,0,.45); cursor:pointer; transition:transform .1s;
+  display:flex; align-items:center; justify-content:center; gap:5px;
 }
-.timer-box.danger { background:rgba(180,20,20,.7); animation:pulseDanger .5s infinite alternate; }
-@keyframes pulseDanger { from { color:#fff; } to { color:#ffcaca; } }
-#pauseBtn { pointer-events:auto; width:44px; height:44px; border:1px solid rgba(255,255,255,.15); border-radius:12px; background:rgba(0,0,0,.5); color:white; font-size:15px; font-weight:800; cursor:pointer; transition:transform .1s; }
+#pauseBtn i { display:block; width:4px; height:15px; border-radius:2px; background:#fff; }
 #pauseBtn:active { transform:scale(.92); }
-#menu { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; background:rgba(10,20,40,.55); z-index:5; padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); animation:fadeIn .3s ease; overflow-y:auto; }
+.timer-box {
+  background:rgba(0,0,0,.45); padding:0 12px; height:42px; display:flex; align-items:center; border-radius:12px;
+  font-size:16px; font-weight:800; color:#fff; letter-spacing:.5px;
+  font-variant-numeric:tabular-nums; border:1px solid var(--line); transition:background .2s;
+}
+.timer-box.danger { background:rgba(180,20,20,.75); animation:pulseDanger .5s infinite alternate; }
+@keyframes pulseDanger { from { color:#fff; } to { color:#ffcaca; } }
+.hud-right {
+  display:flex; flex-direction:column; gap:2px; min-width:112px;
+  background:rgba(0,0,0,.45); border:1px solid var(--line); border-radius:12px; padding:6px 12px;
+}
+.hud-row { display:flex; justify-content:space-between; align-items:baseline; gap:14px; color:#fff; }
+.hud-row .label { font-size:10px; font-weight:700; letter-spacing:1.2px; color:var(--muted); text-transform:uppercase; }
+.hud-row .val { font-size:18px; font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; }
+.hud-row .val.white { color:#fff; }
+
+/* ---------- Menu / cartões ---------- */
+#menu {
+  position:absolute; inset:0; display:flex; justify-content:center; align-items:center;
+  background:rgba(10,20,40,.55); z-index:5;
+  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  animation:fadeIn .3s ease; overflow-y:auto;
+}
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 .menu-card {
-  position:relative; background:rgba(20,26,44,.96);
+  position:relative; background:var(--panel);
   backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-  width:100%; max-width:380px; margin:auto; border-radius:22px; padding:22px 18px;
-  display:flex; flex-direction:column; align-items:center; gap:14px;
-  border:1px solid rgba(255,255,255,.1); box-shadow:0 20px 50px rgba(0,0,0,.6);
+  width:100%; max-width:360px; margin:auto; border-radius:20px; padding:24px 20px 20px;
+  display:flex; flex-direction:column; align-items:stretch; gap:14px;
+  border:1px solid var(--line); box-shadow:0 20px 50px rgba(0,0,0,.55);
   max-height:calc(100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   overflow-y:auto; animation:cardIn .25s ease;
 }
 @keyframes cardIn { from { opacity:0; transform:translateY(12px) scale(.97); } to { opacity:1; transform:none; } }
-#mTitle, .ttl { font-size:26px; font-weight:900; color:white; letter-spacing:1.5px; text-align:center; line-height:1.1; text-transform:uppercase; padding-left:32px; padding-right:32px; }
-.ttl { font-size:20px; }
-#mBig { font-size:44px; font-weight:900; color:white; font-variant-numeric:tabular-nums; line-height:1; text-shadow:0 4px 12px rgba(0,0,0,.4); }
-#mSub { font-size:14px; font-weight:700; color:rgba(255,255,255,.7); text-align:center; }
+#mTitle { font-size:28px; font-weight:900; color:#fff; letter-spacing:3px; text-align:center; line-height:1.1; text-transform:uppercase; }
+.ttl { font-size:13px; font-weight:800; color:var(--muted); letter-spacing:2px; text-align:center; text-transform:uppercase; padding:0 36px; line-height:36px; margin-top:-6px; }
+#mBig { font-size:44px; font-weight:900; color:#fff; text-align:center; font-variant-numeric:tabular-nums; line-height:1; text-shadow:0 4px 12px rgba(0,0,0,.4); }
+#mSub { font-size:13px; font-weight:600; color:var(--muted); text-align:center; line-height:1.4; }
 #mBig:empty, #mSub:empty { display:none; }
-#bankRow, .bank { font-size:14px; font-weight:900; color:#ffd42a; text-align:center; font-variant-numeric:tabular-nums; padding:6px 14px; border-radius:10px; background:rgba(255,212,42,.08); }
-.main-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; }
-.main-btn { padding:16px 8px; border:1.5px solid rgba(255,255,255,.15); border-radius:16px; background:rgba(255,255,255,.05); color:white; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; transition:all .15s; }
-.main-btn:hover { background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.3); }
-.main-btn:active { transform:scale(.95); }
-.main-btn .mb-ic { font-size:26px; line-height:1; }
-.main-btn .mb-tx { font-size:12px; font-weight:900; letter-spacing:1px; text-transform:uppercase; color:rgba(255,255,255,.9); }
-.modal { position:absolute; inset:0; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,.65); z-index:6; padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); overflow-y:auto; animation:fadeIn .2s ease; }
-.modal.open { display:flex; }
-.modal .menu-card { animation:modalIn .25s cubic-bezier(.2,.9,.3,1.2); }
-@keyframes modalIn { from { opacity:0; transform:scale(.92); } to { opacity:1; transform:none; } }
-.close-x { position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:50%; border:1.5px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:rgba(255,255,255,.8); font-size:16px; font-weight:900; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; transition:all .15s; z-index:2; }
-.close-x:hover { background:rgba(255,80,80,.2); border-color:rgba(255,80,80,.5); color:#ff6b6b; }
-.close-x:active { transform:scale(.9); }
-#shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; padding:2px; }
-.card { border:2px solid rgba(255,255,255,.12); border-radius:14px; background:rgba(255,255,255,.06); color:rgba(255,255,255,.85); padding:10px 4px; font-size:11px; font-weight:800; cursor:pointer; transition:all .15s ease; font-family:inherit; display:flex; flex-direction:column; align-items:center; gap:2px; min-height:96px; }
-.card .ic { font-size:26px; line-height:1.1; }
-.card .pr { font-size:10px; color:#ffd42a; margin-top:2px; }
-.card.locked { opacity:.65; }
-.card.eq .pr { color:#4ade80; }
-.card.sel { border-color:#ffd42a; background:rgba(255,212,42,.15); color:#ffd42a; }
-#shopInfo { font-size:13px; font-weight:800; color:rgba(255,255,255,.8); text-align:center; min-height:18px; }
-#play, .primary { width:100%; padding:16px; border:0; border-radius:16px; background:#ffd42a; color:#332000; font-size:17px; font-weight:900; letter-spacing:1px; cursor:pointer; font-family:inherit; text-transform:uppercase; transition:transform .1s, filter .2s; }
+
+/* patente */
+#patBadge {
+  display:none; flex-direction:column; gap:8px; padding:10px 12px; border-radius:12px;
+  background:rgba(255,255,255,.04); border:1px solid var(--line);
+}
+.pb-top { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; font-weight:700; }
+.pb-name { display:flex; align-items:center; gap:8px; color:var(--pc,#fff); letter-spacing:1px; text-transform:uppercase; font-weight:800; }
+.pb-next { color:var(--muted); font-size:11px; }
+.dot { width:9px; height:9px; border-radius:50%; background:var(--pc,#fff); flex:none; }
+.pb-bar { height:4px; border-radius:2px; background:rgba(255,255,255,.1); overflow:hidden; }
+.pb-bar span { display:block; height:100%; background:var(--pc,#fff); border-radius:2px; }
+
+/* botões */
+#play, .primary {
+  width:100%; padding:15px; border:0; border-radius:14px; background:var(--accent); color:var(--accent-ink);
+  font-size:16px; font-weight:900; letter-spacing:1.5px; cursor:pointer; text-transform:uppercase;
+  transition:transform .1s, filter .2s;
+}
 #play:hover, .primary:hover { filter:brightness(1.06); }
-#play:active, .primary:active { transform:scale(.97); }
-.primary:disabled { opacity:.45; pointer-events:none; }
-.ghost { width:100%; padding:12px 8px; border:1.5px solid rgba(255,255,255,.2); border-radius:14px; background:rgba(255,255,255,.05); color:white; font-size:12px; font-weight:800; letter-spacing:.5px; cursor:pointer; font-family:inherit; text-transform:uppercase; transition:all .2s; }
-.ghost:active { transform:scale(.95); }
-.ghost.active { background:rgba(255,212,42,.2); border-color:#ffd42a; color:#ffd42a; }
-.cfg-row { display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px; color:white; font-size:14px; font-weight:800; }
-.cfg-row input[type=range] { width:140px; accent-color:#ffd42a; }
-.tog { min-width:90px; padding:8px 10px; border-radius:12px; border:1.5px solid rgba(255,255,255,.25); background:rgba(255,255,255,.06); color:rgba(255,255,255,.7); font-weight:900; font-size:12px; font-family:inherit; cursor:pointer; }
-.tog.on, .tog.sel { border-color:#ffd42a; background:rgba(255,212,42,.15); color:#ffd42a; }
+#play:active, .primary:active { transform:scale(.98); }
+.primary:disabled { opacity:.4; pointer-events:none; }
+.ghost {
+  width:100%; padding:12px 8px; border:1px solid var(--line-strong); border-radius:12px; background:transparent;
+  color:#fff; font-size:12px; font-weight:700; letter-spacing:1px; cursor:pointer; text-transform:uppercase; transition:all .15s;
+}
+.ghost:hover { background:rgba(255,255,255,.06); }
+.ghost:active { transform:scale(.98); }
+.ghost.danger { color:var(--danger); border-color:rgba(255,107,107,.45); }
+.main-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%; }
+.main-btn {
+  padding:13px 8px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04);
+  color:rgba(255,255,255,.9); font-size:12px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase;
+  cursor:pointer; transition:all .15s;
+}
+.main-btn:hover { background:rgba(255,255,255,.09); border-color:var(--line-strong); }
+.main-btn:active { transform:scale(.97); }
+
+/* estatísticas */
+#bankRow { display:none; grid-template-columns:repeat(3,1fr); gap:8px; padding-top:12px; border-top:1px solid var(--line); }
+.stat { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; }
+.stat span { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); }
+.stat b { font-size:14px; font-weight:800; color:#fff; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.stat b.gold { color:var(--accent); }
+
+/* modais */
+.modal {
+  position:absolute; inset:0; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,.65); z-index:6;
+  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); overflow-y:auto; animation:fadeIn .2s ease;
+}
+.modal.open { display:flex; }
+.modal .menu-card { animation:modalIn .22s ease; }
+@keyframes modalIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:none; } }
+.close-x {
+  position:absolute; top:12px; right:12px; width:36px; height:36px; border-radius:50%; border:1px solid var(--line);
+  background:rgba(255,255,255,.05); color:rgba(255,255,255,.8); font-size:22px; line-height:1; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:all .15s; z-index:2;
+}
+.close-x:hover { background:rgba(255,80,80,.2); border-color:rgba(255,80,80,.5); color:var(--danger); }
+.close-x:active { transform:scale(.9); }
+
+/* loja */
+.bank { align-self:center; font-size:13px; font-weight:700; color:var(--muted); padding:6px 14px; border-radius:999px; background:rgba(255,212,42,.08); }
+.bank b { color:var(--accent); font-size:15px; margin-left:4px; font-variant-numeric:tabular-nums; }
+#shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+.card {
+  border:1.5px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04); color:rgba(255,255,255,.88);
+  padding:10px 4px; font-size:11px; font-weight:700; cursor:pointer; transition:all .15s ease;
+  display:flex; flex-direction:column; align-items:center; gap:3px; min-height:88px; justify-content:center;
+}
+.card .pr { font-size:10px; font-weight:800; letter-spacing:.5px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; }
+.card.locked { opacity:.7; }
+.card.locked .pr { color:var(--accent); }
+.card.eq .pr { color:var(--ok); }
+.card.sel { border-color:var(--accent); background:rgba(255,212,42,.12); color:var(--accent); opacity:1; }
+.sw { display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.28); flex:none; }
+.card .sw { width:32px; height:32px; border-radius:10px; margin-bottom:3px; }
+#shopInfo { font-size:13px; font-weight:700; color:var(--muted); text-align:center; min-height:18px; }
+
+/* config */
+.cfg-row { display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px; color:#fff; font-size:14px; font-weight:600; padding:10px 0; border-bottom:1px solid var(--line); }
+.cfg-row:last-child { border-bottom:0; }
+.cfg-row input[type=range] { width:140px; accent-color:var(--accent); padding:0; border:0; background:none; }
+.tog { min-width:92px; padding:8px 10px; border-radius:10px; border:1px solid var(--line-strong); background:transparent; color:var(--muted); font-weight:800; font-size:11px; letter-spacing:.8px; cursor:pointer; }
+.tog.on, .tog.sel { border-color:var(--accent); background:rgba(255,212,42,.14); color:var(--accent); }
 .seg { display:flex; gap:4px; }
-.seg .tog { min-width:0; padding:8px; flex:1; }
-input { width:100%; padding:14px; border-radius:14px; border:2px solid rgba(255,255,255,.15); background:rgba(0,0,0,.3); color:white; font-size:16px; font-weight:800; font-family:inherit; outline:none; transition:border .2s; }
-input:focus { border-color:#ffd42a; }
+.seg .tog { min-width:0; padding:8px 10px; }
+
+/* formulários */
+input {
+  width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line); background:rgba(0,0,0,.3);
+  color:#fff; font-size:16px; font-weight:600; font-family:inherit; outline:none; transition:border .2s;
+}
+input:focus { border-color:var(--accent); }
 input::placeholder { color:rgba(255,255,255,.4); }
-#hint { position:absolute; bottom:calc(18px + env(safe-area-inset-bottom)); width:100%; text-align:center; color:white; font-size:12px; font-weight:700; letter-spacing:1px; text-shadow:0 2px 6px black; pointer-events:none; transition:opacity 1s; z-index:3; opacity:0; }
+.form { width:100%; display:flex; flex-direction:column; gap:12px; }
+.form-msg { color:var(--danger); font-size:13px; font-weight:700; text-align:center; min-height:16px; }
+.note { color:var(--muted); font-size:13px; text-align:center; line-height:1.4; }
+.acc-email { font-size:15px; color:var(--accent); font-weight:700; word-break:break-all; text-align:center; }
+
+/* ranking */
+.rank-list { width:100%; max-height:55vh; overflow-y:auto; border-radius:12px; background:rgba(0,0,0,.22); border:1px solid var(--line); }
+.rk-msg { color:var(--muted); text-align:center; padding:24px 12px; font-size:14px; }
+.rk-row { display:flex; align-items:center; gap:10px; padding:11px 12px; border-bottom:1px solid var(--line); color:#fff; font-weight:700; font-size:14px; }
+.rk-row:last-child { border-bottom:0; }
+.rk-pos { width:24px; text-align:center; color:var(--muted); font-variant-numeric:tabular-nums; }
+.rk-pos.top1 { color:#ffd42a; } .rk-pos.top2 { color:#d0d4da; } .rk-pos.top3 { color:#d9915a; }
+.rk-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rk-pat { font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.rk-time { font-variant-numeric:tabular-nums; color:var(--accent); font-size:12px; font-weight:800; }
+
+/* outros */
+#hint { position:absolute; bottom:calc(18px + env(safe-area-inset-bottom)); width:100%; text-align:center; color:#fff; font-size:12px; font-weight:700; letter-spacing:1px; text-shadow:0 2px 6px black; pointer-events:none; transition:opacity 1s; z-index:3; opacity:0; }
 #flash { position:absolute; inset:0; background:#f22; opacity:0; pointer-events:none; z-index:2; transition:opacity .35s; }
-#countdown { position:absolute; top:32%; left:0; right:0; text-align:center; font-size:104px; font-weight:900; color:white; text-shadow:0 6px 24px rgba(0,0,0,.55); letter-spacing:2px; pointer-events:none; display:none; z-index:7; }
+#countdown { position:absolute; top:32%; left:0; right:0; text-align:center; font-size:104px; font-weight:900; color:#fff; text-shadow:0 6px 24px rgba(0,0,0,.55); letter-spacing:2px; pointer-events:none; display:none; z-index:7; }
 #countdown.pop { animation:pop .75s ease-out forwards; }
 @keyframes pop { 0% { transform:scale(.4); opacity:0; } 25% { transform:scale(1.15); opacity:1; } 70% { transform:scale(1); opacity:1; } 100% { transform:scale(1.25); opacity:0; } }
-#patBadge { display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:12px; background:rgba(255,255,255,.06); font-weight:900; font-size:14px; letter-spacing:.5px; }
-@media (max-height: 640px) { .menu-card { gap:10px; padding:16px 14px; } #mTitle { font-size:22px; } .ttl { font-size:18px; } #mBig { font-size:36px; } .card { min-height:80px; padding:8px 4px; } .card .ic { font-size:22px; } .main-btn { padding:12px 6px; } .main-btn .mb-ic { font-size:22px; } }
+@media (max-height: 640px) {
+  .menu-card { gap:10px; padding:18px 16px 16px; }
+  #mTitle { font-size:22px; } #mBig { font-size:36px; }
+  .card { min-height:76px; padding:8px 4px; } .card .sw { width:26px; height:26px; }
+  .main-btn { padding:10px 6px; }
+}
 </style>
 </head>
 <body>
@@ -108,12 +215,12 @@ input::placeholder { color:rgba(255,255,255,.4); }
 
 <div id="hud">
   <div class="hud-left">
-    <button id="pauseBtn">❚❚</button>
+    <button id="pauseBtn" aria-label="Pausar"><i></i><i></i></button>
     <div class="timer-box" id="timerBox"><span id="timerTxt">00:00.000</span></div>
   </div>
   <div class="hud-right">
-    <div class="hud-row"><span class="label">MOEDAS</span><span class="val" id="coins" style="color:#ffd42a">0</span></div>
-    <div class="hud-row"><span class="label">SCORE</span><span class="val" id="scoreDisplay">0</span></div>
+    <div class="hud-row"><span class="label">Moedas</span><span class="val" id="coins">0</span></div>
+    <div class="hud-row"><span class="label">Score</span><span class="val white" id="scoreDisplay">0</span></div>
   </div>
 </div>
 
@@ -122,22 +229,23 @@ input::placeholder { color:rgba(255,255,255,.4); }
     <h1 id="mTitle">METRO RUSH</h1>
     <div id="mBig"></div>
     <div id="mSub"></div>
+    <div id="patBadge"></div>
     <button id="play">JOGAR</button>
     <div class="main-grid">
-      <button class="main-btn" id="openShop"><span class="mb-ic">🛒</span><span class="mb-tx">Loja</span></button>
-      <button class="main-btn" id="openCfg"><span class="mb-ic">⚙️</span><span class="mb-tx">Config</span></button>
-      <button class="main-btn" id="openRank"><span class="mb-ic">🏆</span><span class="mb-tx">Rank</span></button>
-      <button class="main-btn" id="openAcc"><span class="mb-ic">👤</span><span class="mb-tx">Conta</span></button>
+      <button class="main-btn" id="openShop">Loja</button>
+      <button class="main-btn" id="openRank">Ranking</button>
+      <button class="main-btn" id="openCfg">Ajustes</button>
+      <button class="main-btn" id="openAcc">Conta</button>
     </div>
     <div id="bankRow"></div>
-    <button class="ghost" id="menuBtn" style="display:none;flex:none">MENU</button>
+    <button class="ghost" id="menuBtn" style="display:none">Menu principal</button>
   </div>
 
   <div class="modal" id="modalShop">
     <div class="menu-card">
-      <button class="close-x" data-close="modalShop">✕</button>
-      <h1 class="ttl">🛒 Loja</h1>
-      <div class="bank">🪙 <span id="shopBank">0</span></div>
+      <button class="close-x" data-close="modalShop" aria-label="Fechar">&times;</button>
+      <h1 class="ttl">Loja</h1>
+      <div class="bank">Moedas <b id="shopBank">0</b></div>
       <div id="shopGrid"></div>
       <div id="shopInfo"></div>
       <button class="primary" id="shopAct">EQUIPAR</button>
@@ -146,51 +254,53 @@ input::placeholder { color:rgba(255,255,255,.4); }
 
   <div class="modal" id="modalCfg">
     <div class="menu-card">
-      <button class="close-x" data-close="modalCfg">✕</button>
-      <h1 class="ttl">⚙️ Configurações</h1>
-      <div class="cfg-row"><span>Música</span><input type="range" id="cfgMusic" min="0" max="100" step="5"></div>
-      <div class="cfg-row"><span>Efeitos</span><input type="range" id="cfgSfx" min="0" max="100" step="5"></div>
-      <div class="cfg-row"><span>Vibração</span><button class="tog" id="cfgVib"></button></div>
-      <div class="cfg-row"><span>Dia e noite</span><button class="tog" id="cfgCycle"></button></div>
-      <div class="cfg-row"><span>Qualidade</span><div class="seg" id="cfgQual"><button class="tog" data-q="low">Baixa</button><button class="tog" data-q="med">Média</button><button class="tog" data-q="high">Alta</button></div></div>
+      <button class="close-x" data-close="modalCfg" aria-label="Fechar">&times;</button>
+      <h1 class="ttl">Ajustes</h1>
+      <div>
+        <div class="cfg-row"><span>Música</span><input type="range" id="cfgMusic" min="0" max="100" step="5"></div>
+        <div class="cfg-row"><span>Efeitos</span><input type="range" id="cfgSfx" min="0" max="100" step="5"></div>
+        <div class="cfg-row"><span>Vibração</span><button class="tog" id="cfgVib"></button></div>
+        <div class="cfg-row"><span>Dia e noite</span><button class="tog" id="cfgCycle"></button></div>
+        <div class="cfg-row"><span>Qualidade</span><div class="seg" id="cfgQual"><button class="tog" data-q="low">Baixa</button><button class="tog" data-q="med">Média</button><button class="tog" data-q="high">Alta</button></div></div>
+      </div>
     </div>
   </div>
 
   <div class="modal" id="modalRank">
     <div class="menu-card">
-      <button class="close-x" data-close="modalRank">✕</button>
-      <h1 class="ttl">🏆 Ranking</h1>
-      <div id="rankList" style="width:100%;max-height:55vh;overflow-y:auto;border-radius:12px;background:rgba(0,0,0,.2)"><div style="color:rgba(255,255,255,.6);text-align:center;padding:20px 0">Carregando...</div></div>
+      <button class="close-x" data-close="modalRank" aria-label="Fechar">&times;</button>
+      <h1 class="ttl">Ranking</h1>
+      <div id="rankList" class="rank-list"><div class="rk-msg">Carregando...</div></div>
     </div>
   </div>
 
   <div class="modal" id="modalAcc">
     <div class="menu-card">
-      <button class="close-x" data-close="modalAcc">✕</button>
-      <div id="authForm" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <button class="close-x" data-close="modalAcc" aria-label="Fechar">&times;</button>
+      <div id="authForm" class="form">
         <h1 class="ttl" id="authTitle">ENTRAR</h1>
-        <p id="authError" style="color:#ff6b6b;font-size:13px;font-weight:800;text-align:center;min-height:16px;"></p>
+        <p id="authError" class="form-msg"></p>
         <input type="email" id="authEmail" placeholder="Seu e-mail" autocomplete="email">
-        <input type="password" id="authPass" placeholder="Sua senha (mín. 6 letras)" autocomplete="current-password">
+        <input type="password" id="authPass" placeholder="Sua senha (mín. 6 caracteres)" autocomplete="current-password">
         <button class="primary" id="authBtn">ENTRAR</button>
-        <button class="ghost" id="authToggle" style="flex:none;width:100%">Não tem conta? Cadastre-se</button>
+        <button class="ghost" id="authToggle">Não tem conta? Cadastre-se</button>
       </div>
-      <div id="profileView" style="width:100%;display:none;flex-direction:column;align-items:center;gap:12px">
-        <h1 class="ttl">👤 Minha Conta</h1>
-        <p style="font-size:15px;color:#ffd42a;font-weight:800;word-break:break-all;text-align:center" id="profileEmail">email@exemplo.com</p>
-        <p style="font-size:13px;color:rgba(255,255,255,.6);text-align:center">Seu progresso e ranking estão salvos nesta conta.</p>
-        <button class="primary" id="changeNameBtn">Mudar Nome</button>
-        <button class="ghost" id="syncNowBtn" style="flex:none;width:100%">☁️ Sincronizar agora</button>
-        <button class="ghost" id="logoutBtn" style="border-color:#ff4444;color:#ff4444;flex:none;width:100%">SAIR DA CONTA</button>
+      <div id="profileView" class="form" style="display:none">
+        <h1 class="ttl">Minha conta</h1>
+        <p class="acc-email" id="profileEmail">email@exemplo.com</p>
+        <p class="note">Seu progresso e ranking estão salvos nesta conta.</p>
+        <button class="primary" id="changeNameBtn">Mudar nome</button>
+        <button class="ghost" id="syncNowBtn">Sincronizar agora</button>
+        <button class="ghost danger" id="logoutBtn">Sair da conta</button>
       </div>
     </div>
   </div>
 
   <div class="modal" id="modalName">
     <div class="menu-card">
-      <button class="close-x" data-close="modalName">✕</button>
+      <button class="close-x" data-close="modalName" aria-label="Fechar">&times;</button>
       <h1 class="ttl">Seu nome</h1>
-      <p style="color:rgba(255,255,255,.7);font-size:13px;text-align:center">Aparecerá no ranking (máx. 12 caracteres)</p>
+      <p class="note">Aparecerá no ranking (máx. 12 caracteres)</p>
       <input id="nameInput" maxlength="12" placeholder="Jogador">
       <button class="primary" id="nameSave">SALVAR</button>
     </div>
@@ -311,7 +421,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
 import * as THREE from 'three';
 
 if (location.protocol === 'file:') {
-  document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7">⚠️ <b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div>';
+  document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
   throw new Error('file:// não suportado');
 }
 
@@ -341,28 +451,30 @@ function loadLS(k) { try { return localStorage.getItem(k); } catch(e) { return n
 function saveLS(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
 
 const CHARS = [
-  { id:'zumbi',    name:'Zumbi',       icon:'🧟',   price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
-  { id:'robo',     name:'Robô',        icon:'🤖',   price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
-  { id:'ninja',    name:'Ninja',       icon:'🥷',   price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
-  { id:'samurai',  name:'Samurai',     icon:'⚔️',   price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
-  { id:'pirata',   name:'Pirata',      icon:'🏴‍☠️', price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
-  { id:'rei',      name:'Rei',         icon:'👑',   price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
-  { id:'astro',    name:'Astronauta',  icon:'🧑‍🚀', price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
-  { id:'capoeira', name:'Capoeirista', icon:'🤸',   price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
-  { id:'mittens',  name:'Mittens',     icon:'🐈',   price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
-  { id:'salem',    name:'Salém',       icon:'🐈‍⬛', price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false }
+  { id:'zumbi',    name:'Zumbi',       price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
+  { id:'robo',     name:'Robô',        price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
+  { id:'ninja',    name:'Ninja',       price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
+  { id:'samurai',  name:'Samurai',     price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
+  { id:'pirata',   name:'Pirata',      price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
+  { id:'rei',      name:'Rei',         price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
+  { id:'astro',    name:'Astronauta',  price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
+  { id:'capoeira', name:'Capoeirista', price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
+  { id:'mittens',  name:'Mittens',     price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
+  { id:'salem',    name:'Salém',       price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false }
 ];
+const hex6 = n => '#' + n.toString(16).padStart(6,'0');
+function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
 
 // ======================================================
 // SISTEMA DE PATENTE
 // ======================================================
 const PATENTES = [
-  { id:'bronze',   nome:'Bronze',   icon:'🥉', cor:'#cd7f32', minMs:0      },
-  { id:'prata',    nome:'Prata',    icon:'🥈', cor:'#c0c0c0', minMs:60000  },
-  { id:'ouro',     nome:'Ouro',     icon:'🥇', cor:'#ffd42a', minMs:120000 },
-  { id:'platina',  nome:'Platina',  icon:'💎', cor:'#7ce0ff', minMs:180000 },
-  { id:'diamante', nome:'Diamante', icon:'🔷', cor:'#4aa3ff', minMs:240000 },
-  { id:'mestre',   nome:'Mestre',   icon:'👑', cor:'#b06bff', minMs:300000 }
+  { id:'bronze',   nome:'Bronze',   cor:'#cd7f32', minMs:0      },
+  { id:'prata',    nome:'Prata',    cor:'#c0c0c0', minMs:60000  },
+  { id:'ouro',     nome:'Ouro',     cor:'#ffd42a', minMs:120000 },
+  { id:'platina',  nome:'Platina',  cor:'#7ce0ff', minMs:180000 },
+  { id:'diamante', nome:'Diamante', cor:'#4aa3ff', minMs:240000 },
+  { id:'mestre',   nome:'Mestre',   cor:'#b06bff', minMs:300000 }
 ];
 function getPatenteForScore(s){ let p=PATENTES[0]; for(const x of PATENTES){ if(s>=x.minMs) p=x; } return p; }
 function getPatenteIdx(s){ let i=0; for(let k=0;k<PATENTES.length;k++){ if(s>=PATENTES[k].minMs) i=k; } return i; }
@@ -1165,7 +1277,7 @@ function trySpawnPattern(z0){
   coinLine(thirdFree, z0, 6, 2.2, 0.95);
   return finish(14);
 }
-  // ======================================================
+// ======================================================
 // ESTADO
 // ======================================================
 let running=false, paused=false, dead=false, deadT=0, ended=false, counting=false, countStep=-1, countT=0;
@@ -1409,6 +1521,7 @@ const mTitle = document.getElementById('mTitle');
 const mBig = document.getElementById('mBig');
 const mSub = document.getElementById('mSub');
 const bankRow = document.getElementById('bankRow');
+const patBadge = document.getElementById('patBadge');
 const playBtn = document.getElementById('play');
 const hint = document.getElementById('hint');
 const pauseBtn = document.getElementById('pauseBtn');
@@ -1460,7 +1573,10 @@ function updateHUD(){
 function updateBankRow(){
   const eq = CHARS.find(x=>x.id===charId) || CHARS[0];
   const pat = getMyPatente();
-  bankRow.innerHTML = '🪙 ' + bank + '  ·  ' + eq.icon + ' ' + eq.name + '  ·  ' + pat.icon + ' ' + pat.nome;
+  bankRow.innerHTML =
+    `<div class="stat"><span>Moedas</span><b class="gold">${bank}</b></div>` +
+    `<div class="stat"><span>Personagem</span><b>${escapeHtml(eq.name)}</b></div>` +
+    `<div class="stat"><span>Patente</span><b style="color:${pat.cor}">${pat.nome}</b></div>`;
 }
 
 // ======================================================
@@ -1494,8 +1610,8 @@ async function pullProfileFromAccount(user){
     if(remote.charId && CHARS.some(c=>c.id===remote.charId) && isOwned(remote.charId)) equipChar(remote.charId);
 
     const msg = document.createElement('div');
-    msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(76,175,80,.95);color:white;padding:12px 20px;border-radius:14px;font-weight:900;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);letter-spacing:.5px;text-align:center;max-width:90vw';
-    msg.textContent = '☁️ Progresso sincronizado da sua conta!';
+    msg.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(18,23,38,.96);border:1px solid rgba(74,222,128,.5);color:#fff;padding:11px 18px;border-radius:12px;font-weight:700;font-size:13px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.4);letter-spacing:.3px;text-align:center;max-width:90vw';
+    msg.textContent = 'Progresso sincronizado com sua conta';
     document.body.appendChild(msg);
     setTimeout(()=>{ msg.style.transition='opacity .5s'; msg.style.opacity='0'; }, 2500);
     setTimeout(()=>msg.remove(), 3200);
@@ -1588,11 +1704,11 @@ changeNameBtn.onclick = ()=>{ pendingScore = getRecord(); openModal('modalName')
 syncNowBtn.onclick = async ()=>{
   if(!loggedUser) return;
   const btn = syncNowBtn;
-  btn.textContent = '☁️ Sincronizando...';
+  btn.textContent = 'Sincronizando...';
   await pushProfileToAccount();
   await pullProfileFromAccount(loggedUser);
-  btn.textContent = '☁️ Sincronizado!';
-  setTimeout(()=>{ btn.textContent = '☁️ Sincronizar agora'; }, 1800);
+  btn.textContent = 'Sincronizado';
+  setTimeout(()=>{ btn.textContent = 'Sincronizar agora'; }, 1800);
 };
 
 // ======================================================
@@ -1600,16 +1716,15 @@ syncNowBtn.onclick = async ()=>{
 // ======================================================
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 async function openRanking(){
-  rankList.innerHTML = '<div style="color:rgba(255,255,255,.6);text-align:center;padding:20px">Carregando...</div>';
-  if(!window.fetchTop10){ rankList.innerHTML = '<div style="color:#f88;text-align:center;padding:20px">Modo offline — ranking indisponível.</div>'; return; }
+  rankList.innerHTML = '<div class="rk-msg">Carregando...</div>';
+  if(!window.fetchTop10){ rankList.innerHTML = '<div class="rk-msg">Modo offline — ranking indisponível.</div>'; return; }
   const top = await window.fetchTop10();
-  if(top.length===0){ rankList.innerHTML = '<div style="color:rgba(255,255,255,.6);text-align:center;padding:20px">Ninguém no ranking ainda. Seja o primeiro!</div>'; return; }
+  if(top.length===0){ rankList.innerHTML = '<div class="rk-msg">Ninguém no ranking ainda. Seja o primeiro!</div>'; return; }
   rankList.innerHTML = top.map((r,i)=>{
-    const medal = ['🥇','🥈','🥉'][i] || `${i+1}º`;
     const ch = CHARS.find(c=>c.id===r.charId);
-    const icon = ch ? ch.icon : '👤';
     const pat = getPatenteForScore(r.score||0);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08);color:white;font-weight:800;font-size:14px"><span style="width:30px;text-align:center;font-size:16px">${medal}</span><span style="font-size:16px">${icon}</span><span style="font-size:14px" title="${pat.nome}">${pat.icon}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.name)}</span><span style="font-variant-numeric:tabular-nums;color:#ffd42a;font-size:12px">${fmtTime(r.score)}</span></div>`;
+    const posCls = i<3 ? ' top'+(i+1) : '';
+    return `<div class="rk-row"><span class="rk-pos${posCls}">${i+1}</span>${ch?swatch(ch):'<i class="sw"></i>'}<span class="rk-name">${escapeHtml(r.name)}</span><span class="rk-pat" style="color:${pat.cor}">${pat.nome}</span><span class="rk-time">${fmtTime(r.score)}</span></div>`;
   }).join('');
 }
 
@@ -1648,8 +1763,8 @@ function renderShop(){
     const own = isOwned(c.id);
     const b = document.createElement('button'); b.type='button';
     b.className = 'card' + (c.id===shopSel?' sel':'') + (own?'':' locked') + (c.id===charId?' eq':'');
-    const tag = c.id===charId ? 'EM USO' : own ? 'SEU' : '🔒 '+c.price;
-    b.innerHTML = `<span class="ic">${c.icon}</span>${c.name}<span class="pr">${tag}</span>`;
+    const tag = c.id===charId ? 'EM USO' : own ? 'SEU' : String(c.price);
+    b.innerHTML = `${swatch(c)}<span>${c.name}</span><span class="pr">${tag}</span>`;
     b.addEventListener('click', ()=>{ shopSel = c.id; applyCharacter(c.id); SFX.ui(); renderShop(); });
     shopGrid.appendChild(b);
   }
@@ -1658,7 +1773,7 @@ function renderShop(){
   shopAct.disabled = false;
   if(c.id===charId){ shopInfo.textContent = c.name + ' · equipado'; shopAct.textContent = 'EQUIPADO'; shopAct.disabled = true; shopAct.onclick = null; }
   else if(own){ shopInfo.textContent = c.name; shopAct.textContent = 'EQUIPAR'; shopAct.onclick = ()=>{ equipChar(c.id); SFX.equip(); renderShop(); }; }
-  else { const falta = c.price - bank; shopInfo.textContent = falta>0 ? 'Faltam '+falta+' moedas' : c.name; shopAct.textContent = 'COMPRAR 🪙 '+c.price; shopAct.disabled = falta>0; shopAct.onclick = ()=>buyChar(c.id); }
+  else { const falta = c.price - bank; shopInfo.textContent = falta>0 ? 'Faltam '+falta+' moedas' : c.name; shopAct.textContent = 'COMPRAR · '+c.price; shopAct.disabled = falta>0; shopAct.onclick = ()=>buyChar(c.id); }
 }
 
 // ======================================================
@@ -1680,25 +1795,22 @@ for(const b of cfgQual.children) b.addEventListener('click', ()=>{ cfg.quality =
 // ======================================================
 // FLUXO DE JOGO
 // ======================================================
-function showMain(){
+function renderPatBadge(){
   const rec = getRecord();
   const pat = getPatenteForScore(rec);
   const next = getNextPatente(rec);
-  let badgeEl = document.getElementById('patBadge');
-  if(!badgeEl){
-    badgeEl = document.createElement('div');
-    badgeEl.id = 'patBadge';
-    const titleEl = document.getElementById('mTitle');
-    titleEl.parentNode.insertBefore(badgeEl, titleEl.nextSibling);
-  }
-  const progresso = next ? Math.floor((rec-pat.minMs)/(next.minMs-pat.minMs)*100) : 100;
-  badgeEl.style.borderColor = pat.cor;
-  badgeEl.style.color = pat.cor;
-  badgeEl.style.border = '1.5px solid ' + pat.cor;
-  badgeEl.innerHTML = `<span style="font-size:18px">${pat.icon}</span><span>${pat.nome.toUpperCase()}</span>` +
-    (next ? `<span style="font-size:11px;opacity:.7;margin-left:4px">→ ${next.icon} ${progresso}%</span>` : `<span style="font-size:11px;margin-left:4px">MÁXIMO</span>`);
+  const progresso = next ? clamp(Math.floor((rec-pat.minMs)/(next.minMs-pat.minMs)*100),0,100) : 100;
+  patBadge.style.setProperty('--pc', pat.cor);
+  patBadge.innerHTML =
+    `<div class="pb-top"><span class="pb-name"><i class="dot"></i>${pat.nome}</span>` +
+    `<span class="pb-next">${next ? 'Próx.: '+next.nome+' · '+progresso+'%' : 'Nível máximo'}</span></div>` +
+    `<div class="pb-bar"><span style="width:${progresso}%"></span></div>`;
+}
 
-  showMenu('METRO RUSH', '', rec>0?'Recorde '+fmtTime(rec):'Corra. Desvie. Sobreviva.', 'JOGAR', startGame, {bank:true, menu:false});
+function showMain(){
+  const rec = getRecord();
+  renderPatBadge();
+  showMenu('METRO RUSH', '', rec>0?'Recorde '+fmtTime(rec):'Corra. Desvie. Sobreviva.', 'JOGAR', startGame, {bank:true, menu:false, badge:true});
 }
 
 const COUNT_SEQ = ['3','2','1','VAI!'];
@@ -1732,15 +1844,16 @@ function showMenu(title, big, sub, btnTxt, action, opts){
   mSub.textContent = sub || '';
   playBtn.textContent = btnTxt;
   playBtn.onclick = action;
-  bankRow.style.display = opts.bank ? 'block' : 'none';
+  bankRow.style.display = opts.bank ? 'grid' : 'none';
   if(opts.bank) updateBankRow();
+  patBadge.style.display = opts.badge ? 'flex' : 'none';
   document.querySelector('.main-grid').style.display = opts.hideGrid ? 'none' : 'grid';
   document.getElementById('menuBtn').style.display = opts.menu ? 'block' : 'none';
 
   const isEnd = (btnTxt==='JOGAR NOVAMENTE');
   let kbdHint = document.getElementById('kbdHint');
   if(isEnd){
-    if(!kbdHint){ kbdHint = document.createElement('div'); kbdHint.id='kbdHint'; kbdHint.style.cssText='font-size:11px;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:1px;text-align:center;margin-top:-4px'; playBtn.parentNode.insertBefore(kbdHint, playBtn.nextSibling); }
+    if(!kbdHint){ kbdHint = document.createElement('div'); kbdHint.id='kbdHint'; kbdHint.style.cssText='font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:1px;text-align:center;margin-top:-6px'; playBtn.parentNode.insertBefore(kbdHint, playBtn.nextSibling); }
     kbdHint.textContent = 'ESPAÇO / ENTER PARA REINICIAR'; kbdHint.style.display = 'block';
   } else if(kbdHint) { kbdHint.style.display = 'none'; }
 
@@ -1831,9 +1944,10 @@ function endGame(){
   const timeBonus = Math.floor(t/5000);
   const totalGanho = coinsN + timeBonus;
 
-  let titulo = isRecord ? 'NOVO RECORDE!' : 'VOCÊ BATEU!';
-  let sub = `${newPat.icon} ${newPat.nome}  ·  Recorde ${fmtTime(record)}  ·  +${totalGanho} 🪙`;
-  if(subiuPatente) sub = `🎉 SUBIU PARA ${newPat.icon} ${newPat.nome.toUpperCase()}!  ·  +${totalGanho} 🪙`;
+  let titulo = isRecord ? 'NOVO RECORDE' : 'VOCÊ BATEU';
+  let sub = `Patente ${newPat.nome}  ·  Recorde ${fmtTime(record)}\n+${totalGanho} moedas`;
+  if(subiuPatente) sub = `Você subiu para ${newPat.nome.toUpperCase()}\n+${totalGanho} moedas`;
+  mSub.style.whiteSpace = 'pre-line';
 
   showMenu(titulo, fmtTime(t), sub, 'JOGAR NOVAMENTE', startGame, {menu:true, bank:true, hideGrid:true});
 
