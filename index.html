@@ -1345,6 +1345,7 @@ let stumbleTimer=0, stumbleGrace=0, shake=0;
 let nextZ=0, runT=0, coinSpin=0, dustT=0, windT=0, rigFlashT=0;
 let camX=0, camY=5.4, laneTilt=0, laneYaw=0, laneVelocity=0;
 let prevPlayerX=0, prevPlayerZ=3;
+let prevPlayerY=0; // [FIX RAMPA] Y do frame anterior para checagens de "veio de cima"
 player.position.set(0,0,3);
 
 applyCharacter(charId);
@@ -1501,6 +1502,7 @@ cv.addEventListener('pointerup', endTrack);
 cv.addEventListener('pointercancel', ()=>{ tracking=false; });
 cv.addEventListener('contextmenu', e=>e.preventDefault());
 
+// [FIX RAMPA] groundAt: aceita folga maior abaixo da superfície inclinada
 function groundAt(x,z,y){
   let g = 0;
   for(const o of obstacles){
@@ -1510,7 +1512,8 @@ function groundAt(x,z,y){
     if(o.kind==='ramp'){
       const t = clamp(((o.z+o.hl)-z)/(2*o.hl),0,1);
       const h = o.top*t;
-      if(y>=h-0.8 && h>g) g = h;
+      // [FIX RAMPA] folga maior (-1.2) para não atravessar em alta velocidade
+      if(y >= h - 1.2 && h > g) g = h;
     } else if(o.walkable){
       if(y >= o.top - 0.15 && o.top > g) g = o.top;
     }
@@ -1544,22 +1547,25 @@ const internalOnHit = function(front, solid){
 
 const internalCheckCollisions = function(pz0, px0){
   const px = player.position.x, pz = player.position.z, py = player.position.y;
+  const py0 = prevPlayerY; // [FIX RAMPA] Y do frame anterior
   const minX = Math.min(px0,px), maxX = Math.max(px0,px);
   const minZ = Math.min(pz0,pz), maxZ = Math.max(pz0,pz);
   const PW = 0.45, PD = 0.45;
   for(const o of obstacles){
+    // [FIX RAMPA] A rampa NUNCA mata. É apoio. Snap para cima se estiver abaixo.
     if(o.kind==='ramp'){
-      const rMinZ = o.z-o.hl, rMaxZ = o.z+o.hl, rMinX = o.x-1.0, rMaxX = o.x+1.0;
-      const overlapX = maxX > rMinX-PW && minX < rMaxX+PW;
-      const overlapZ = maxZ > rMinZ-PD && minZ < rMaxZ+PD;
-      if(!overlapX || !overlapZ) continue;
-      const t = clamp((rMaxZ-pz)/(rMaxZ-rMinZ),0,1);
-      const rampY = o.top*t;
-      if(py >= rampY-0.6) continue;
-      const wasBeforeRamp = pz0 >= rMinZ-0.6;
-      const wasAlignedX = px0 > rMinX-PW && px0 < rMaxX+PW;
-      if(wasBeforeRamp && wasAlignedX) continue;
-      if(internalOnHit(true, true)) return;
+      const rMinZ = o.z-o.hl, rMaxZ = o.z+o.hl;
+      const rMinX = o.x-1.0, rMaxX = o.x+1.0;
+      if(!(maxX > rMinX-PW && minX < rMaxX+PW)) continue;
+      if(!(maxZ > rMinZ-PD && minZ < rMaxZ+PD)) continue;
+      const t = clamp((rMaxZ - pz) / (rMaxZ - rMinZ), 0, 1);
+      const rampY = o.top * t;
+      // Snap suave: se o jogador está abaixo da superfície, empurra para cima
+      if(player.position.y < rampY - 0.05){
+        player.position.y = rampY;
+        vy = Math.max(vy, 0);
+        onGround = true;
+      }
       continue;
     }
     const mX = (o.kind==='train')?1.0:1.05;
@@ -1570,7 +1576,9 @@ const internalCheckCollisions = function(pz0, px0){
     if(maxX < oMinX-PW || minX > oMaxX+PW) continue;
     if(o.kind==='train'){
       const top = o.top;
+      // [FIX RAMPA] Se o jogador está acima OU veio de cima, não mata (subida via rampa)
       if(py >= top - 0.15) continue;
+      if(py0 >= top - 0.5) continue;
       if(internalOnHit(true, true)) return;
       continue;
     }
@@ -1580,8 +1588,6 @@ const internalCheckCollisions = function(pz0, px0){
       const wasInZ0 = (pz0 >= oMinZ && pz0 <= oMaxZ);
       const dx = Math.abs(px - o.x);
       const hitFront = !wasInZ0 || dx < 0.6;
-      // ANTES: internalOnHit(hitFront, false) → só tropeço (godmode)
-      // AGORA: solid=true → MORTE na hora
       if(internalOnHit(hitFront, true)) return;
       continue;
     }
@@ -1591,8 +1597,6 @@ const internalCheckCollisions = function(pz0, px0){
       const wasInZ0 = (pz0 >= oMinZ && pz0 <= oMaxZ);
       const dx = Math.abs(px - o.x);
       const hitFront = !wasInZ0 || dx < 0.6;
-      // ANTES: internalOnHit(hitFront, false) → só tropeço (godmode)
-      // AGORA: solid=true → MORTE na hora
       if(internalOnHit(hitFront, true)) return;
       continue;
     }
@@ -1983,7 +1987,8 @@ function resetRun(){
   clearWorld(); clearParticles();
   player.position.set(0,0,3); player.rotation.set(0,0,0);
   rig.rotation.set(0,0,0); rig.scale.setScalar(1); rig.position.y = 0.76; rig.visible = true;
-  prevPlayerX = 0; prevPlayerZ = 3; laneTilt=0; laneYaw=0; laneVelocity=0;
+  prevPlayerX = 0; prevPlayerZ = 3; prevPlayerY = 0; // [FIX RAMPA] reset Y anterior
+  laneTilt=0; laneYaw=0; laneVelocity=0;
   lane=0; prevLane=0; onGround=true; vy=0; sliding=false; slideT=0; wantRoll=false;
   stumbleTimer=0; stumbleGrace=0; shake=0; rigFlashT=0;
   speed=START_V; speedK=0; runTimeMs=0; coinsN=0; banked=false; runT=0; dustT=0; windT=0;
@@ -2209,6 +2214,7 @@ function update(dt){
   const bs = 1/(1 + (player.position.y-g)*0.35);
   blob.scale.set(bs,1,bs);
   prevPlayerX = player.position.x; prevPlayerZ = player.position.z;
+  prevPlayerY = player.position.y; // [FIX RAMPA] guarda Y do frame atual
 
   updateHUD();
 }
