@@ -263,7 +263,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
 #countdown.pop { animation:pop .75s ease-out forwards; }
 @keyframes pop { 0% { transform:scale(.4); opacity:0; } 25% { transform:scale(1.15); opacity:1; } 70% { transform:scale(1); opacity:1; } 100% { transform:scale(1.25); opacity:0; } }
 
-/* [UI RESPONSIVA] Fallback extremo para telas minúsculas */
 @media (max-width: 320px) {
   :root {
     --card-max: 96vw;
@@ -374,7 +373,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
       <button class="close-x" data-close="modalName" aria-label="Fechar" style="display:none">&times;</button>
       <h1 class="ttl">Escolha seu nome</h1>
       <p class="note" style="color:#ffd42a;font-weight:900;letter-spacing:1px;font-size:14px">ATENÇÃO: NÃO PODERÁ SER TROCADO DEPOIS</p>
-      <p class="note">Este será seu nome permanente no ranking (máx. 12 caracteres).</p>
+      <p class="note">Este será seu nome permanente e ÚNICO no ranking (3 a 12 caracteres).</p>
       <input id="nameInput" maxlength="12" placeholder="Jogador" autocomplete="off">
       <button class="primary" id="nameSave">CONFIRMAR PARA SEMPRE</button>
     </div>
@@ -435,6 +434,16 @@ function secureLoad(k, fallback) {
   } catch(e) { return fallback; }
 }
 
+// [NOME ÚNICO] Normalização idêntica à usada nas regras do Firestore
+function normalizeName(s) {
+  return String(s)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 12) || 'x';
+}
+
 // ======================================================
 // FIREBASE E AUTENTICAÇÃO
 // ======================================================
@@ -466,6 +475,7 @@ try {
       onChange: (cb) => authModule.onAuthStateChanged(auth, cb),
       get currentUser() { return auth.currentUser; }
     },
+
     saveProfile: async (data) => {
       if (!auth.currentUser) return false;
       try {
@@ -491,6 +501,7 @@ try {
         return true;
       } catch(e) { console.error('[Firebase] saveProfile:', e); return false; }
     },
+
     loadProfile: async () => {
       if (!auth.currentUser) return null;
       try {
@@ -499,6 +510,95 @@ try {
         return snap.exists() ? snap.data() : null;
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
     },
+
+    // [NOME ÚNICO] Verifica se o nome está disponível globalmente
+    isNameAvailable: async (name) => {
+      if (!auth.currentUser) return false;
+      try {
+        const nameKey = normalizeName(name);
+        const ref = firestore.doc(db, 'usernames', nameKey);
+        const snap = await firestore.getDoc(ref);
+        if (!snap.exists()) return true;
+        return snap.data().ownerUid === auth.currentUser.uid;
+      } catch (e) { console.error('[Firebase] isNameAvailable:', e); return false; }
+    },
+
+    // [NOME ÚNICO] Reserva o nome globalmente - TRAVA TOTAL
+    reserveName: async (name) => {
+      if (!auth.currentUser) return { ok: false, reason: 'not_logged' };
+      try {
+        const raw = String(name || '').trim().slice(0, 12);
+        if (!raw) return { ok: false, reason: 'empty' };
+        if (raw.length < 3) return { ok: false, reason: 'too_short' };
+        const nameKey = normalizeName(raw);
+        if (!nameKey || nameKey === 'x') return { ok: false, reason: 'invalid' };
+
+        const nameRef = firestore.doc(db, 'usernames', nameKey);
+        const userRef = firestore.doc(db, 'users', auth.currentUser.uid);
+        const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
+
+        // 1) Verifica se o nome já está em uso por OUTRA pessoa
+        const nameSnap = await firestore.getDoc(nameRef);
+        if (nameSnap.exists()) {
+          const owner = nameSnap.data().ownerUid;
+          if (owner && owner !== auth.currentUser.uid) {
+            return { ok: false, reason: 'taken', nameKey };
+          }
+        }
+
+        // 2) Verifica se o usuário atual já não tem um nome salvo (imutável)
+        const userSnap = await firestore.getDoc(userRef);
+        if (userSnap.exists()) {
+          const existing = String(userSnap.data().playerName || '').trim();
+          if (existing) {
+            if (normalizeName(existing) !== nameKey) {
+              return { ok: false, reason: 'already_has_name', existing };
+            }
+            return { ok: true, reason: 'same', nameKey };
+          }
+        }
+
+        // 3) Cria a reserva na coleção 'usernames'
+        await firestore.setDoc(nameRef, {
+          ownerUid: auth.currentUser.uid,
+          nameKey: nameKey,
+          name: raw,
+          createdAt: firestore.serverTimestamp()
+        });
+
+        // 4) Salva no perfil do usuário
+        const userPayload = {
+          playerName: raw,
+          email: auth.currentUser.email,
+          updatedAt: firestore.serverTimestamp()
+        };
+        if (userSnap.exists()) {
+          await firestore.setDoc(userRef, userPayload, { merge: true });
+        } else {
+          await firestore.setDoc(userRef, {
+            owned: ['zumbi'],
+            bank: 0,
+            charId: 'zumbi',
+            recordMs: 0,
+            email: auth.currentUser.email,
+            playerName: raw,
+            updatedAt: firestore.serverTimestamp()
+          });
+        }
+
+        // 5) Atualiza o ranking
+        const scoreSnap = await firestore.getDoc(scoreRef);
+        if (scoreSnap.exists()) {
+          await firestore.setDoc(scoreRef, { name: raw }, { merge: true });
+        }
+
+        return { ok: true, reason: 'reserved', nameKey };
+      } catch (e) {
+        console.error('[Firebase] reserveName:', e);
+        return { ok: false, reason: 'error', error: e };
+      }
+    },
+
     sendScore: async (name, scoreMs, charId, recordMs) => {
       if (!auth.currentUser) return false;
       try {
@@ -530,6 +630,7 @@ try {
         return true;
       } catch(e) { console.error('[Firebase] sendScore:', e); return false; }
     },
+
     fetchTop10: async () => {
       try {
         const q = firestore.query(firestore.collection(db, 'scores'), firestore.orderBy('score', 'desc'), firestore.limit(10));
@@ -689,7 +790,7 @@ let camBack=10, camHeight=5.4, baseFov=65, curFov=65, fovK=0;
 
 function applySize(){ renderer.setPixelRatio(pixelRatio); renderer.setSize(innerWidth,innerHeight); }
 
-// [UI RESPONSIVA] FOV adaptativo para telas estreitas
+// [UI RESPONSIVA] FOV adaptativo
 function fitCamera(){
   const a = innerWidth/innerHeight;
   const w = innerWidth;
@@ -1825,6 +1926,16 @@ async function pullProfileFromAccount(user){
     if(document.getElementById('modalShop').classList.contains('open')) renderShop();
 
     maybeRequireName(remote);
+
+    // [NOME ÚNICO] Auto-reparo: se já tem nome mas não tem reserva, tenta reservar
+    if(remote && remote.playerName){
+      try {
+        const stillFree = await MetroAPI.isNameAvailable(remote.playerName);
+        if(stillFree){
+          await MetroAPI.reserveName(remote.playerName);
+        }
+      } catch(e) { console.warn('[Nome único] auto-reparo falhou:', e); }
+    }
   } catch(e){ console.error('[Sync] pull:', e); }
   syncInProgress = false;
 }
@@ -1941,7 +2052,7 @@ syncNowBtn.onclick = async ()=>{
 };
 
 // ======================================================
-// NOME FIXO
+// NOME FIXO / NOME ÚNICO
 // ======================================================
 function openNameModal(locked){
   const modal = document.getElementById('modalName');
@@ -1950,6 +2061,11 @@ function openNameModal(locked){
   nameSave.disabled = false;
   nameSave.textContent = locked ? 'CONFIRMAR PARA SEMPRE' : 'SALVAR';
   modal.classList.toggle('locked', !!locked);
+
+  const errEl = document.getElementById('nameError');
+  if(errEl) errEl.remove();
+  nameInput.style.borderColor = '';
+
   openModal('modalName');
   setTimeout(()=>nameInput.focus(), 200);
 }
@@ -1965,9 +2081,51 @@ function askNameAndSend(scoreMs){
   openNameModal(true);
 }
 
+// [NOME ÚNICO] Feedback em tempo real no input
+let nameCheckTimer = null;
+nameInput.addEventListener('input', ()=>{
+  const errEl = document.getElementById('nameError');
+  if (errEl) errEl.remove();
+  nameInput.style.borderColor = '';
+
+  if (!MetroAPI || !loggedUser) return;
+  const val = nameInput.value.trim();
+  if (val.length < 3) return;
+
+  clearTimeout(nameCheckTimer);
+  nameCheckTimer = setTimeout(async ()=>{
+    const cur = nameInput.value.trim();
+    if (cur !== val) return;
+    try {
+      const free = await MetroAPI.isNameAvailable(cur);
+      if (!free) {
+        nameInput.style.borderColor = '#ff6b6b';
+        let errEl = document.getElementById('nameError');
+        if (!errEl) {
+          errEl = document.createElement('p');
+          errEl.id = 'nameError';
+          errEl.style.cssText = 'color:#ff6b6b;font-size:12px;font-weight:700;text-align:center;margin-top:-2px';
+          nameInput.parentNode.insertBefore(errEl, nameInput.nextSibling);
+        }
+        errEl.textContent = 'Nome já em uso';
+      } else {
+        nameInput.style.borderColor = '#4ade80';
+        setTimeout(()=>{ nameInput.style.borderColor = ''; }, 900);
+      }
+    } catch(_) {}
+  }, 500);
+});
+
+// [NOME ÚNICO] Salvar com reserva atômica - TRAVA TOTAL
 nameSave.onclick = async ()=>{
   const raw = nameInput.value.trim();
-  const name = raw || 'Anônimo';
+
+  if (!raw || raw.length < 3) {
+    nameInput.focus();
+    nameInput.style.borderColor = '#ff6b6b';
+    setTimeout(()=>{ nameInput.style.borderColor = ''; }, 1200);
+    return;
+  }
 
   if (getPlayerName() && !nameRequired) {
     closeModal('modalName');
@@ -1975,22 +2133,69 @@ nameSave.onclick = async ()=>{
   }
 
   nameSave.disabled = true;
-  nameSave.textContent = 'SALVANDO...';
-
-  secureSave(SAVE_KEYS.name, name);
+  const oldTxt = nameSave.textContent;
+  nameSave.textContent = 'VERIFICANDO...';
 
   if (MetroAPI && loggedUser) {
-    try {
-      await MetroAPI.sendScore(name, pendingScore, charId, getRecord());
-      await MetroAPI.saveProfile({
-        owned, bank, charId,
-        recordMs: getRecord(),
-        playerName: name
-      });
-    } catch(e) {
-      console.warn('[Nome fixo] falha ao gravar no servidor:', e);
+    nameSave.textContent = 'RESERVANDO...';
+    const res = await MetroAPI.reserveName(raw);
+
+    if (!res.ok) {
+      nameSave.disabled = false;
+      nameSave.textContent = oldTxt;
+
+      if (res.reason === 'taken') {
+        nameInput.focus();
+        nameInput.select();
+        nameInput.style.borderColor = '#ff6b6b';
+        let errEl = document.getElementById('nameError');
+        if (!errEl) {
+          errEl = document.createElement('p');
+          errEl.id = 'nameError';
+          errEl.style.cssText = 'color:#ff6b6b;font-size:13px;font-weight:700;text-align:center;margin-top:-4px';
+          nameInput.parentNode.insertBefore(errEl, nameInput.nextSibling);
+        }
+        errEl.textContent = 'Este nome já está em uso. Escolha outro.';
+        setTimeout(()=>{ nameInput.style.borderColor = ''; }, 1500);
+        return;
+      }
+      if (res.reason === 'already_has_name') {
+        nameRequired = false;
+        secureSave(SAVE_KEYS.name, res.existing);
+        closeModal('modalName');
+        updateAccountUI();
+        showMain();
+        return;
+      }
+      
+      // [CORREÇÃO] Se der qualquer outro erro (como rede), NÃO SALVA LOCALMENTE.
+      // Mostra erro para o jogador tentar de novo.
+      let errEl = document.getElementById('nameError');
+      if (!errEl) {
+        errEl = document.createElement('p');
+        errEl.id = 'nameError';
+        errEl.style.cssText = 'color:#ff6b6b;font-size:13px;font-weight:700;text-align:center;margin-top:-4px';
+        nameInput.parentNode.insertBefore(errEl, nameInput.nextSibling);
+      }
+      errEl.textContent = 'Erro ao salvar. Verifique sua internet e tente novamente.';
+      return; // O código PARA AQUI. Não passa para baixo!
+    } else {
+      // SUCESSO! O nome foi reservado no banco de dados.
+      secureSave(SAVE_KEYS.name, raw);
+      try {
+        await MetroAPI.sendScore(raw, pendingScore, charId, getRecord());
+      } catch(_) {}
     }
+  } else {
+    // Se não estiver logado, bloqueia o jogo (não deixa jogar sem conta)
+    nameSave.disabled = false;
+    nameSave.textContent = oldTxt;
+    alert('Você precisa estar logado para definir seu nome.');
+    return;
   }
+
+  const errEl = document.getElementById('nameError');
+  if (errEl) errEl.remove();
 
   nameRequired = false;
   nameSave.disabled = false;
