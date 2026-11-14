@@ -472,7 +472,7 @@ function getNextPatente(s){ const i=getPatenteIdx(s); return i<PATENTES.length-1
 function getMyPatente(){ return getPatenteForScore(getRecord()); }
 
 // ======================================================
-// SALVAMENTO LOCAL
+// SALVAMENTO LOCAL (Agora preso à conta)
 // ======================================================
 const SAVE_KEYS = { owned:'metroOwned', bank:'metroBank', char:'metroChar2', record:'metroRecordMs', name:'metroPlayerName' };
 
@@ -491,6 +491,27 @@ function isOwned(id){ const c=CHARS.find(x=>x.id===id); return !!c && (c.price==
 let charId = loadLS(SAVE_KEYS.char) || CHARS[0].id;
 if(!CHARS.some(c=>c.id===charId)) charId = CHARS[0].id;
 if(!isOwned(charId)) charId = CHARS[0].id;
+
+// NOVO: Limpa os dados do jogador da memória local
+function clearLocalData(){
+  owned = [];
+  bank = 0;
+  charId = 'zumbi';
+  saveOwned();
+  saveBank();
+  saveLS(SAVE_KEYS.char, charId);
+  setRecord(0);
+  saveLS(SAVE_KEYS.name, '');
+  applyCharacter(charId);
+  updateHUD();
+  updateBankRow();
+}
+
+// NOVO: Bloqueia o jogo se não estiver logado
+function checkLoginState(){
+  if (!MetroAPI) return true; // Se Firebase falhar, deixa jogar offline
+  return loggedUser !== null;
+}
 
 // ======================================================
 // CONFIG
@@ -1547,7 +1568,10 @@ function closeAllModals(){ document.querySelectorAll('.modal.open').forEach(m=>m
 document.querySelectorAll('.close-x').forEach(btn=>btn.addEventListener('click', ()=>closeModal(btn.dataset.close)));
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
 
-document.getElementById('openShop').onclick = ()=>{ shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui(); };
+document.getElementById('openShop').onclick = ()=>{ 
+  if(!checkLoginState()){ alert('Você precisa entrar na sua conta para acessar a loja.'); return; }
+  shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui(); 
+};
 document.getElementById('openCfg').onclick = ()=>{ syncCfgUI(); openModal('modalCfg'); SFX.ui(); };
 document.getElementById('openRank').onclick = ()=>{ openModal('modalRank'); openRanking(); SFX.ui(); };
 document.getElementById('openAcc').onclick = ()=>{ openAccount(); openModal('modalAcc'); SFX.ui(); };
@@ -1563,10 +1587,11 @@ function updateHUD(){
 function updateBankRow(){
   const eq = CHARS.find(x=>x.id===charId) || CHARS[0];
   const pat = getMyPatente();
+  const isLogged = checkLoginState();
   bankRow.innerHTML =
-    `<div class="stat"><span>Moedas</span><b class="gold">${bank}</b></div>` +
-    `<div class="stat"><span>Personagem</span><b>${escapeHtml(eq.name)}</b></div>` +
-    `<div class="stat"><span>Patente</span><b style="color:${pat.cor}">${pat.nome}</b></div>`;
+    `<div class="stat"><span>Moedas</span><b class="gold">${isLogged ? bank : '---'}</b></div>` +
+    `<div class="stat"><span>Personagem</span><b>${isLogged ? escapeHtml(eq.name) : '---'}</b></div>` +
+    `<div class="stat"><span>Patente</span><b style="color:${isLogged ? pat.cor : '#888'}">${isLogged ? pat.nome : '---'}</b></div>`;
 }
 
 // ======================================================
@@ -1643,7 +1668,9 @@ function initAuth(){
     } else {
       authForm.style.display = 'flex';
       profileView.style.display = 'none';
+      clearLocalData(); // LIMPA OS DADOS AO DESLOGAR
     }
+    updateBankRow();
   });
 }
 function openAccount(){
@@ -1895,6 +1922,9 @@ function resetRun(){
 }
 
 function startGame(){
+  // BLOQUEIO DE JOGO: Exige conta para jogar (descomente a linha abaixo se quiser bloquear)
+  // if(!checkLoginState()){ alert('Entre na sua conta para jogar e salvar seu recorde.'); openAccount(); openModal('modalAcc'); return; }
+  
   applyCharacter(charId);
   ensureAudio(); resetRun(); running=true; menu.style.display='none';
   if(!loadLS('metroTutorialSeen')){
