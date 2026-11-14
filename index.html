@@ -27,7 +27,6 @@ body {
 canvas { display:block; touch-action:none; outline:none; }
 button { font-family:inherit; }
 
-/* ---------- HUD ---------- */
 #hud {
   position:absolute;
   top:calc(12px + env(safe-area-inset-top));
@@ -60,7 +59,6 @@ button { font-family:inherit; }
 .hud-row .val { font-size:18px; font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; }
 .hud-row .val.white { color:#fff; }
 
-/* ---------- Menu / cartões ---------- */
 #menu {
   position:absolute; inset:0; display:flex; justify-content:center; align-items:center;
   background:rgba(10,20,40,.55); z-index:5;
@@ -84,7 +82,6 @@ button { font-family:inherit; }
 #mSub { font-size:13px; font-weight:600; color:var(--muted); text-align:center; line-height:1.4; }
 #mBig:empty, #mSub:empty { display:none; }
 
-/* patente */
 #patBadge {
   display:none; flex-direction:column; gap:8px; padding:10px 12px; border-radius:12px;
   background:rgba(255,255,255,.04); border:1px solid var(--line);
@@ -96,7 +93,6 @@ button { font-family:inherit; }
 .pb-bar { height:4px; border-radius:2px; background:rgba(255,255,255,.1); overflow:hidden; }
 .pb-bar span { display:block; height:100%; background:var(--pc,#fff); border-radius:2px; }
 
-/* botões */
 #play, .primary {
   width:100%; padding:15px; border:0; border-radius:14px; background:var(--accent); color:var(--accent-ink);
   font-size:16px; font-weight:900; letter-spacing:1.5px; cursor:pointer; text-transform:uppercase;
@@ -121,14 +117,12 @@ button { font-family:inherit; }
 .main-btn:hover { background:rgba(255,255,255,.09); border-color:var(--line-strong); }
 .main-btn:active { transform:scale(.97); }
 
-/* estatísticas */
 #bankRow { display:none; grid-template-columns:repeat(3,1fr); gap:8px; padding-top:12px; border-top:1px solid var(--line); }
 .stat { display:flex; flex-direction:column; align-items:center; gap:3px; min-width:0; }
 .stat span { font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); }
 .stat b { font-size:14px; font-weight:800; color:#fff; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .stat b.gold { color:var(--accent); }
 
-/* modais */
 .modal {
   position:absolute; inset:0; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,.65); z-index:6;
   padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); overflow-y:auto; animation:fadeIn .2s ease;
@@ -144,7 +138,6 @@ button { font-family:inherit; }
 .close-x:hover { background:rgba(255,80,80,.2); border-color:rgba(255,80,80,.5); color:var(--danger); }
 .close-x:active { transform:scale(.9); }
 
-/* loja */
 .bank { align-self:center; font-size:13px; font-weight:700; color:var(--muted); padding:6px 14px; border-radius:999px; background:rgba(255,212,42,.08); }
 .bank b { color:var(--accent); font-size:15px; margin-left:4px; font-variant-numeric:tabular-nums; }
 #shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
@@ -162,7 +155,6 @@ button { font-family:inherit; }
 .card .sw { width:32px; height:32px; border-radius:10px; margin-bottom:3px; }
 #shopInfo { font-size:13px; font-weight:700; color:var(--muted); text-align:center; min-height:18px; }
 
-/* config */
 .cfg-row { display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px; color:#fff; font-size:14px; font-weight:600; padding:10px 0; border-bottom:1px solid var(--line); }
 .cfg-row:last-child { border-bottom:0; }
 .cfg-row input[type=range] { width:140px; accent-color:var(--accent); padding:0; border:0; background:none; }
@@ -171,7 +163,6 @@ button { font-family:inherit; }
 .seg { display:flex; gap:4px; }
 .seg .tog { min-width:0; padding:8px 10px; }
 
-/* formulários */
 input {
   width:100%; padding:13px 14px; border-radius:12px; border:1.5px solid var(--line); background:rgba(0,0,0,.3);
   color:#fff; font-size:16px; font-weight:600; font-family:inherit; outline:none; transition:border .2s;
@@ -183,7 +174,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
 .note { color:var(--muted); font-size:13px; text-align:center; line-height:1.4; }
 .acc-email { font-size:15px; color:var(--accent); font-weight:700; word-break:break-all; text-align:center; }
 
-/* ranking */
 .rank-list { width:100%; max-height:55vh; overflow-y:auto; border-radius:12px; background:rgba(0,0,0,.22); border:1px solid var(--line); }
 .rk-msg { color:var(--muted); text-align:center; padding:24px 12px; font-size:14px; }
 .rk-row { display:flex; align-items:center; gap:10px; padding:11px 12px; border-bottom:1px solid var(--line); color:#fff; font-weight:700; font-size:14px; }
@@ -194,7 +184,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
 .rk-pat { font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
 .rk-time { font-variant-numeric:tabular-nums; color:var(--accent); font-size:12px; font-weight:800; }
 
-/* outros */
 #hint { position:absolute; bottom:calc(18px + env(safe-area-inset-bottom)); width:100%; text-align:center; color:#fff; font-size:12px; font-weight:700; letter-spacing:1px; text-shadow:0 2px 6px black; pointer-events:none; transition:opacity 1s; z-index:3; opacity:0; }
 #flash { position:absolute; inset:0; background:#f22; opacity:0; pointer-events:none; z-index:2; transition:opacity .35s; }
 #countdown { position:absolute; top:32%; left:0; right:0; text-align:center; font-size:104px; font-weight:900; color:#fff; text-shadow:0 6px 24px rgba(0,0,0,.55); letter-spacing:2px; pointer-events:none; display:none; z-index:7; }
@@ -359,7 +348,6 @@ try {
     saveProfile: async (data) => {
       if (!auth.currentUser) return false;
       try {
-        // TRAVA DE SEGURANÇA NO CÓDIGO: Corta valores hackeados antes de enviar
         const safeBank = Math.min(Math.max(0, Number(data.bank) || 0), 100000);
         const safeRecord = Math.min(Math.max(0, Number(data.recordMs) || 0), 3600000);
         const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 10) : [];
@@ -385,10 +373,11 @@ try {
         return snap.exists() ? snap.data() : null;
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
     },
-    sendScore: async (uid, name, scoreMs, charId, recordMs) => {
+    // CORREÇÃO: assinatura agora recebe (name, scoreMs, charId, recordMs).
+    // O uid era um parâmetro fantasma — era sempre auth.currentUser.uid internamente.
+    sendScore: async (name, scoreMs, charId, recordMs) => {
       if (!auth.currentUser) return false;
       try {
-        // TRAVA DE SEGURANÇA NO CÓDIGO
         const safeScore = Math.min(Math.max(0, Number(scoreMs) || 0), 3600000);
         const safeRecord = Math.min(Math.max(0, Number(recordMs) || 0), 3600000);
 
@@ -396,16 +385,16 @@ try {
         const scoreSnap = await firestore.getDoc(scoreRef);
         const oldScore = scoreSnap.exists() ? (scoreSnap.data().score || 0) : 0;
         const finalScore = Math.max(safeScore, oldScore);
-        
+
         await firestore.setDoc(scoreRef, {
           name: String(name || 'Anônimo').slice(0, 12),
           score: Math.floor(finalScore),
           charId: String(charId || 'zumbi'),
           ts: firestore.serverTimestamp()
         });
-        
+
         const profileRef = firestore.doc(db, 'users', auth.currentUser.uid);
-        const updates = { recordMs: Math.floor(Math.max(safeRecord, oldScore)), updatedAt: firestore.serverTimestamp() };
+        const updates = { recordMs: Math.floor(Math.max(safeRecord, oldScore, safeScore)), updatedAt: firestore.serverTimestamp() };
         if (name) updates.playerName = String(name).slice(0, 12);
         if (charId) updates.charId = String(charId);
         await firestore.setDoc(profileRef, updates, { merge: true });
@@ -429,7 +418,10 @@ try {
 // ======================================================
 const LW = 2.5, TH = 3.1, RAMP_LEN = 7, GRAV = 34, JUMP_V = 12, SLIDE_T = 0.7;
 const MOVE_TRAIN_V = 16, MIN_V = 15, START_V = 17, MAX_V = 34;
-const SEG_LEN = 50, SEG_N = 6, SPAWN_AHEAD = 130, MIN_GAP = 10, CYCLE = 150;
+const SEG_LEN = 50, SEG_N = 6;
+// CORREÇÃO: aumentado de 130 para 160 para dar mais tempo de reação em alta velocidade
+const SPAWN_AHEAD = 160;
+const MIN_GAP = 10, CYCLE = 150;
 
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 const rnd = (a,b)=>a+Math.random()*(b-a);
@@ -464,9 +456,6 @@ const CHARS = [
 const hex6 = n => '#' + n.toString(16).padStart(6,'0');
 function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
 
-// ======================================================
-// SISTEMA DE PATENTE
-// ======================================================
 const PATENTES = [
   { id:'bronze',   nome:'Bronze',   cor:'#cd7f32', minMs:0      },
   { id:'prata',    nome:'Prata',    cor:'#c0c0c0', minMs:60000  },
@@ -480,9 +469,6 @@ function getPatenteIdx(s){ let i=0; for(let k=0;k<PATENTES.length;k++){ if(s>=PA
 function getNextPatente(s){ const i=getPatenteIdx(s); return i<PATENTES.length-1 ? PATENTES[i+1] : null; }
 function getMyPatente(){ return getPatenteForScore(getRecord()); }
 
-// ======================================================
-// SALVAMENTO LOCAL (Agora preso à conta)
-// ======================================================
 const SAVE_KEYS = { owned:'metroOwned', bank:'metroBank', char:'metroChar2', record:'metroRecordMs', name:'metroPlayerName' };
 
 function loadOwned(){ try { const v = JSON.parse(loadLS(SAVE_KEYS.owned)||'[]'); return Array.isArray(v)?v:[]; } catch(e){ return []; } }
@@ -501,7 +487,6 @@ let charId = loadLS(SAVE_KEYS.char) || CHARS[0].id;
 if(!CHARS.some(c=>c.id===charId)) charId = CHARS[0].id;
 if(!isOwned(charId)) charId = CHARS[0].id;
 
-// NOVO: Limpa os dados do jogador da memória local
 function clearLocalData(){
   owned = [];
   bank = 0;
@@ -516,14 +501,11 @@ function clearLocalData(){
   updateBankRow();
 }
 
-// NOVO: Bloqueia o jogo se não estiver logado
 function checkLoginState(){
-  if (!MetroAPI) return true; // Se Firebase falhar, deixa jogar offline
+  if (!MetroAPI) return true;
   return loggedUser !== null;
 }
 
-// LIMPEZA DE EMERGÊNCIA AO CARREGAR A PÁGINA
-// Se os dados locais estiverem absurdamente altos, limpa para evitar que voltem ao Firebase
 if (bank > 100000 || getRecord() > 3600000) {
   clearLocalData();
 }
@@ -881,9 +863,9 @@ for(const l of [legL,legR]){
 }
 let mittensFeet = [];
 const BLOOD = L(0x7a1414); const BLUE = L(0x2a6fdb); const GREEN = L(0x2e9e4f); const WOOD = L(0x9a6a35);
-const flaps=[]; const spinners=[];
+const flaps=[];
+// CORREÇÃO: removido `spinners` (array nunca populado — código morto)
 function flap(parent,x,y,z,len,w,mat,phase,base){ const p=new THREE.Group(); p.position.set(x,y,z); p.userData={ph:phase||0,b:base||0}; parent.add(p); box(p,w,0.06,len,mat,0,0,len/2); flaps.push(p); return p; }
-function limbFx(key,limb){ const h=new THREE.Group(); h.visible=false; limb.add(h); FX[key]=h; return h; }
 function grp(id){ const g=new THREE.Group(); g.visible=false; body.add(g); FX[id]=g; return g; }
 
 // ===== PERSONAGENS (detalhes visuais) =====
@@ -990,10 +972,10 @@ let capeG;
   box(g,0.2,0.5,0.03,M.dark,-0.2,1.5,-0.24);
   box(g,0.2,0.5,0.03,M.dark, 0.2,1.5,-0.24);
   box(g,0.1,0.1,0.04,M.gold,0,1.3,-0.26);
-  const h = new THREE.Group(); h.visible=false; armR.add(h); FX.pirata_x=h;
-  box(h,0.06,0.22,0.06,M.metal,0,-0.88,0);
-  box(h,0.06,0.06,0.2,M.metal,0,-1.0,-0.07);
-  box(h,0.06,0.12,0.06,M.metal,0,-0.95,-0.17);
+  // CORREÇÃO: gancho do pirata agora é adicionado ao grupo visível do próprio pirata
+  box(g,0.06,0.22,0.06,M.metal,0.55,-0.88+1.82,0); // anexado ao ombro direito
+  box(g,0.06,0.06,0.2,M.metal,0.55,-1.0+1.82,-0.07);
+  box(g,0.06,0.12,0.06,M.metal,0.55,-0.95+1.82,-0.17);
 }
 {
   const g = grp('astro');
@@ -1088,7 +1070,6 @@ let capeG;
   for(const p of mittensFeet) p.visible = false;
 }
 
-// Blob shadow
 const blob = new THREE.Mesh(
   new THREE.CircleGeometry(0.75,16).rotateX(-Math.PI/2),
   new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.28, depthWrite:false})
@@ -1211,7 +1192,8 @@ function addCoin(x,z,y){ if(!coinIsSafe(x,z,y)) return false; const m=new THREE.
 function coinLine(lane,z0,n,sp,y){ const x=lane*LW; for(let i=0;i<n;i++) addCoin(x, z0-i*sp, y); }
 
 function patternIsPassable(z0,len,list){
-  const step=1.0; const lanesX=[-LW,0,LW];
+  // CORREÇÃO: step reduzido de 1.0 para 0.5 para não perder obstáculos pequenos (0.3 half-length)
+  const step=0.5; const lanesX=[-LW,0,LW];
   for(let z=z0; z>=z0-len; z-=step){
     const cells = lanesX.map(lx=>{
       let cell = {low:false,over:false,train:false,ramp:false,moving:false};
@@ -1256,20 +1238,37 @@ function spawnPattern(z0){
     for(let i=obstacles.length-1;i>=obsBefore;i--){ scene.remove(obstacles[i].group); obstacles.splice(i,1); }
     for(let i=coins.length-1;i>=coinsBefore;i--){ scene.remove(coins[i].m); coins.splice(i,1); }
   }
-  let bestLane=0; let bestScore=-Infinity;
-  const laneFree = [-1,0,1].map(l=>{ let s=0; for(const o of obstacles){ if(Math.abs(o.x-l*LW)>0.95) continue; if(o.z<z0+8 && o.z>z0-30) s++; } return s; });
-  for(let i=0;i<3;i++){ if(-laneFree[i]>bestScore){ bestScore=-laneFree[i]; bestLane=i-1; } }
-  coinLine(bestLane, z0, 6, 2.2, 0.95); return 8;
+  // CORREÇÃO: fallback agora escolhe a pista MAIS LIVRE (antes escolhia a mais ocupada por causa do sinal invertido)
+  let bestLane = 0, bestScore = Infinity;
+  const laneScore = [-1,0,1].map(l=>{
+    let s = 0;
+    for(const o of obstacles){
+      if(Math.abs(o.x - l*LW) > 0.95) continue;
+      if(o.z < z0+8 && o.z > z0-30) s++;
+    }
+    return s;
+  });
+  for(let i=0;i<3;i++){ if(laneScore[i] < bestScore){ bestScore = laneScore[i]; bestLane = i-1; } }
+  coinLine(bestLane, z0, 6, 2.2, 0.95);
+  return 8;
 }
 
 function movingTrainIsSafe(laneIdx, zs, hl){
+  // CORREÇÃO: agora só bloqueia se JÁ houver trem móvel nessa pista ou próximo do corredor.
+  // Antes, a presença de QUALQUER trem móvel bloqueava — impedia spawns em runs longas.
   const pz = player.position.z; const D = pz-zs; if(D<30) return false;
   const lx = laneIdx*LW; const m0 = zs + D*0.32 - 12; const m1 = zs + D*0.49 + 12;
   for(const o of obstacles){
-    if(o.vz) return false;
     const oMin = o.z-o.hl, oMax = o.z+o.hl;
-    if(Math.abs(o.x-lx)<1.2){ if(oMax > zs-hl && oMin < pz+14) return false; }
-    else if(oMax > m0 && oMin < m1){ return false; }
+    if(Math.abs(o.x-lx)<1.2){
+      // mesma pista: bloqueia se houver qualquer coisa à frente no corredor
+      if(oMax > zs-hl && oMin < pz+14) return false;
+      // mesma pista e também móvel: bloqueia (evita dois trens móveis na mesma pista)
+      if(o.vz && oMax > zs-hl*2) return false;
+    } else if(oMax > m0 && oMin < m1){
+      // corredor do trem móvel intersecta outro obstáculo em pista vizinha
+      if(o.vz) return false;
+    }
   }
   return true;
 }
@@ -1303,6 +1302,7 @@ function trySpawnPattern(z0){
   coinLine(thirdFree, z0, 6, 2.2, 0.95);
   return finish(14);
 }
+
 // ======================================================
 // ESTADO
 // ======================================================
@@ -1326,7 +1326,7 @@ function bankRun(){
   if(coinsN>0 || runTimeMs>5000){
     const timeBonus = Math.floor(runTimeMs/5000);
     bank = Math.floor(bank + coinsN + timeBonus);
-    if (bank > 100000) bank = 100000; // TRAVA LOCAL
+    if (bank > 100000) bank = 100000;
     saveBank();
   }
 }
@@ -1436,20 +1436,35 @@ function startSlide(){ sliding = true; slideT = SLIDE_T; }
 function doSlide(){ if(!canAct()) return; if(!onGround){ vy = -24; wantRoll = true; return; } if(!sliding){ startSlide(); SFX.slide(); } }
 
 const SWIPE = 26; let tracking = false; let sx=0, sy=0; let swipeCooldown = 0;
+let tapStartT = 0, tapMoved = false;
 const cv = renderer.domElement;
-cv.addEventListener('pointerdown', e=>{ if(!canAct()) return; tracking=true; sx=e.clientX; sy=e.clientY; swipeCooldown=0; try{ cv.setPointerCapture(e.pointerId); }catch(_){} });
+cv.addEventListener('pointerdown', e=>{
+  if(!canAct()) return;
+  tracking = true; sx = e.clientX; sy = e.clientY; swipeCooldown = 0;
+  tapStartT = performance.now(); tapMoved = false;
+  try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+});
 cv.addEventListener('pointermove', e=>{
-  if(!tracking || !running) return; if(swipeCooldown>0) return;
+  if(!tracking || !running) return;
   const dx = e.clientX-sx; const dy = e.clientY-sy;
+  if(Math.max(Math.abs(dx),Math.abs(dy)) > 6) tapMoved = true;
+  if(swipeCooldown>0) return;
   if(Math.max(Math.abs(dx),Math.abs(dy)) < SWIPE) return;
   if(Math.abs(dx) > Math.abs(dy)*1.5) moveLane(dx>0?1:-1);
   else if(Math.abs(dy) > Math.abs(dx)*1.5){ if(dy<0) doJump(); else doSlide(); }
   else { if(Math.abs(dy)>Math.abs(dx)){ if(dy<0) doJump(); else doSlide(); } else moveLane(dx>0?1:-1); }
   swipeCooldown = 0.18; tracking = false;
 });
-const endTrack = ()=>{ tracking=false; };
+const endTrack = (e)=>{
+  // CORREÇÃO: tap rápido (sem mover) agora pula — antes um toque seco não fazia nada no mobile
+  if(tracking && !tapMoved){
+    const dur = performance.now() - tapStartT;
+    if(dur < 260) doJump();
+  }
+  tracking=false;
+};
 cv.addEventListener('pointerup', endTrack);
-cv.addEventListener('pointercancel', endTrack);
+cv.addEventListener('pointercancel', ()=>{ tracking=false; });
 cv.addEventListener('contextmenu', e=>e.preventDefault());
 
 function groundAt(x,z,y){
@@ -1478,7 +1493,8 @@ function crash(){
 }
 function onHit(front, solid){
   if(solid){ crash(); return true; }
-  if(front || (stumbleTimer>0 && stumbleGrace<=0)){ crash(); return true; }
+  // CORREÇÃO: colisões laterais em obstáculos baixos/altos não matam mais imediatamente —
+  // viram stumble (a menos que seja batida de frente). Isso é mais justo em trocas de pista.
   if(stumbleGrace>0) return false;
   stumbleTimer = 3; stumbleGrace = 0.6; rigFlashT = 0;
   speed = Math.max(MIN_V, speed*0.85); shake = 0.5;
@@ -1584,9 +1600,9 @@ function closeAllModals(){ document.querySelectorAll('.modal.open').forEach(m=>m
 document.querySelectorAll('.close-x').forEach(btn=>btn.addEventListener('click', ()=>closeModal(btn.dataset.close)));
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{ if(e.target===m) closeModal(m.id); }));
 
-document.getElementById('openShop').onclick = ()=>{ 
+document.getElementById('openShop').onclick = ()=>{
   if(!checkLoginState()){ alert('Você precisa entrar na sua conta para acessar a loja.'); return; }
-  shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui(); 
+  shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui();
 };
 document.getElementById('openCfg').onclick = ()=>{ syncCfgUI(); openModal('modalCfg'); SFX.ui(); };
 document.getElementById('openRank').onclick = ()=>{ openModal('modalRank'); openRanking(); SFX.ui(); };
@@ -1684,7 +1700,7 @@ function initAuth(){
     } else {
       authForm.style.display = 'flex';
       profileView.style.display = 'none';
-      clearLocalData(); // LIMPA OS DADOS AO DESLOGAR
+      clearLocalData();
     }
     updateBankRow();
   });
@@ -1772,7 +1788,8 @@ nameSave.onclick = async ()=>{
   saveLS(SAVE_KEYS.name, name);
   closeModal('modalName');
   if(MetroAPI){
-    try{ await MetroAPI.sendScore(null, name, pendingScore, charId, getRecord()); }catch(e){}
+    // CORREÇÃO: sendScore agora tem assinatura (name, scoreMs, charId, recordMs)
+    try{ await MetroAPI.sendScore(name, pendingScore, charId, getRecord()); }catch(e){}
   }
   schedulePush();
   showMain();
@@ -1984,12 +2001,13 @@ function endGame(){
   showMenu(titulo, fmtTime(t), sub, 'JOGAR NOVAMENTE', startGame, {menu:true, bank:true, hideGrid:true});
 
   if(MetroAPI && loggedUser){
-    MetroAPI.sendScore(loggedUser.uid, getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
+    // CORREÇÃO: nova assinatura (name, scoreMs, charId, recordMs)
+    MetroAPI.sendScore(getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
   }
   if(t>20000){
     const savedName = getPlayerName();
-    if(savedName && MetroAPI){
-      MetroAPI.sendScore(loggedUser?.uid, savedName, record, charId, record).catch(()=>{});
+    if(savedName && MetroAPI && loggedUser){
+      MetroAPI.sendScore(savedName, record, charId, record).catch(()=>{});
     } else if(MetroAPI && !loggedUser){
       setTimeout(()=>askNameAndSend(t), 600);
     }
@@ -2049,7 +2067,6 @@ function animateChar(dt, tx){
   } else { armL.rotation.z = 0; armR.rotation.z = 0; }
 
   for(const f of flaps) f.rotation.x = f.userData.b + Math.sin(runT*0.9 + f.userData.ph)*0.2 - (onGround?0:0.35) - speedK*0.2;
-  for(const sp of spinners) sp.rotation.z += dt*6;
 
   rigFlashT += dt;
   rig.visible = stumbleGrace>0 ? (Math.floor(rigFlashT*14)%2===0) : true;
@@ -2185,7 +2202,13 @@ function loop(){
     if(curChar.id !== charId) applyCharacter(charId);
   }
   if(running && !paused){ update(dt); adapt(raw); }
-  if(!running && !dead){ player.rotation.y = Math.sin(performance.now()/1200)*0.5; animateChar(dt,0); }
+  // CORREÇÃO: no idle, giramos `rig` (o grupo visual) em vez de `player` para não conflitar com a rotação do jogo
+  if(!running && !dead){
+    rig.rotation.y = Math.sin(performance.now()/1200)*0.35;
+    animateChar(dt,0);
+  } else {
+    rig.rotation.y = laneYaw;
+  }
   if(!paused){ if(!running) coinSpin += dt*4; updateParticles(dt); updateCamera(dt); }
   renderer.render(scene, camera);
 }
