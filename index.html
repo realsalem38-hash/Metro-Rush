@@ -318,117 +318,101 @@ input::placeholder { color:rgba(255,255,255,.4); }
 </script>
 
 <script type="module">
-  // --- SISTEMA SEGURO DO FIREBASE (Sem acesso pelo window) ---
-  let db, auth;
-  let createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut;
-  let doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, serverTimestamp;
-  let firebaseReady = false;
+import * as THREE from 'three';
 
-  try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const firestore = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const authModule = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+if (location.protocol === 'file:') {
+  document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
+  throw new Error('file:// não suportado');
+}
 
-    doc = firestore.doc; setDoc = firestore.setDoc; getDoc = firestore.getDoc;
-    collection = firestore.collection; query = firestore.query; orderBy = firestore.orderBy;
-    limit = firestore.limit; getDocs = firestore.getDocs; serverTimestamp = firestore.serverTimestamp;
+// ======================================================
+// FIREBASE E AUTENTICAÇÃO (PROTEGIDO)
+// ======================================================
+let MetroAPI = null;
 
-    createUserWithEmailAndPassword = authModule.createUserWithEmailAndPassword;
-    signInWithEmailAndPassword = authModule.signInWithEmailAndPassword;
-    onAuthStateChanged = authModule.onAuthStateChanged;
-    signOut = authModule.signOut;
+try {
+  const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const firestore = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const authModule = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
-      authDomain: "metro-rush-34e0f.firebaseapp.com",
-      projectId: "metro-rush-34e0f",
-      storageBucket: "metro-rush-34e0f.firebasestorage.app",
-      messagingSenderId: "935760798554",
-      appId: "1:935760798554:web:e797797c02b6718dac4963"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyAuPcguhq-uB6rOgunhXR9I-QQA4ZR9P8Q",
+    authDomain: "metro-rush-34e0f.firebaseapp.com",
+    projectId: "metro-rush-34e0f",
+    storageBucket: "metro-rush-34e0f.firebasestorage.app",
+    messagingSenderId: "935760798554",
+    appId: "1:935760798554:web:e797797c02b6718dac4963"
+  };
 
-    const fbApp = initializeApp(firebaseConfig);
-    db = firestore.getFirestore(fbApp);
-    auth = authModule.getAuth(fbApp);
-    firebaseReady = true;
-  } catch (err) {
-    console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
-  }
+  const fbApp = initializeApp(firebaseConfig);
+  const db = firestore.getFirestore(fbApp);
+  const auth = authModule.getAuth(fbApp);
 
-  // Funções encapsuladas que o HTML vai usar
-  const API = {
+  MetroAPI = {
     auth: {
-      createUser: (email, pass) => createUserWithEmailAndPassword(auth, email, pass),
-      signIn: (email, pass) => signInWithEmailAndPassword(auth, email, pass),
-      signOut: () => signOut(auth),
-      onChange: (cb) => onAuthStateChanged(auth, cb),
-      get currentUser() { return auth ? auth.currentUser : null; }
+      createUser: (email, pass) => authModule.createUserWithEmailAndPassword(auth, email, pass),
+      signIn: (email, pass) => authModule.signInWithEmailAndPassword(auth, email, pass),
+      signOut: () => authModule.signOut(auth),
+      onChange: (cb) => authModule.onAuthStateChanged(auth, cb),
+      get currentUser() { return auth.currentUser; }
     },
     saveProfile: async (data) => {
-      if (!auth || !auth.currentUser) return false;
+      if (!auth.currentUser) return false;
       try {
-        const ref = doc(db, 'users', auth.currentUser.uid);
-        await setDoc(ref, {
+        const ref = firestore.doc(db, 'users', auth.currentUser.uid);
+        await firestore.setDoc(ref, {
           owned: Array.isArray(data.owned) ? data.owned : [],
           bank: Number(data.bank) || 0,
           charId: String(data.charId || 'zumbi'),
           recordMs: Number(data.recordMs) || 0,
           playerName: String(data.playerName || '').slice(0, 12),
           email: auth.currentUser.email,
-          updatedAt: serverTimestamp()
+          updatedAt: firestore.serverTimestamp()
         }, { merge: true });
         return true;
       } catch(e) { console.error('[Firebase] saveProfile:', e); return false; }
     },
     loadProfile: async () => {
-      if (!auth || !auth.currentUser) return null;
+      if (!auth.currentUser) return null;
       try {
-        const ref = doc(db, 'users', auth.currentUser.uid);
-        const snap = await getDoc(ref);
+        const ref = firestore.doc(db, 'users', auth.currentUser.uid);
+        const snap = await firestore.getDoc(ref);
         return snap.exists() ? snap.data() : null;
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
     },
     sendScore: async (uid, name, scoreMs, charId, recordMs) => {
-      if (!auth || !auth.currentUser) return false;
+      if (!auth.currentUser) return false;
       try {
-        const scoreRef = doc(db, 'scores', auth.currentUser.uid);
-        const scoreSnap = await getDoc(scoreRef);
+        const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
+        const scoreSnap = await firestore.getDoc(scoreRef);
         const oldScore = scoreSnap.exists() ? (scoreSnap.data().score || 0) : 0;
         const finalScore = Math.max(scoreMs || 0, oldScore);
         
-        await setDoc(scoreRef, {
+        await firestore.setDoc(scoreRef, {
           name: String(name || 'Anônimo').slice(0, 12),
           score: Math.floor(finalScore),
           charId: String(charId || 'zumbi'),
-          ts: serverTimestamp()
+          ts: firestore.serverTimestamp()
         });
         
-        const profileRef = doc(db, 'users', auth.currentUser.uid);
-        const updates = { recordMs: Math.floor(Math.max(recordMs || scoreMs || 0, oldScore)), updatedAt: serverTimestamp() };
+        const profileRef = firestore.doc(db, 'users', auth.currentUser.uid);
+        const updates = { recordMs: Math.floor(Math.max(recordMs || scoreMs || 0, oldScore)), updatedAt: firestore.serverTimestamp() };
         if (name) updates.playerName = String(name).slice(0, 12);
         if (charId) updates.charId = String(charId);
-        await setDoc(profileRef, updates, { merge: true });
+        await firestore.setDoc(profileRef, updates, { merge: true });
         return true;
       } catch(e) { console.error('[Firebase] sendScore:', e); return false; }
     },
     fetchTop10: async () => {
-      if (!db) return [];
       try {
-        const q = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
-        const snap = await getDocs(q);
+        const q = firestore.query(firestore.collection(db, 'scores'), firestore.orderBy('score', 'desc'), firestore.limit(10));
+        const snap = await firestore.getDocs(q);
         return snap.docs.map(d => d.data());
       } catch(e) { console.error('[Firebase] fetchTop10:', e); return []; }
     }
   };
-
-  window.dispatchEvent(new Event('fb-ready'));
-</script>
-<script type="module">
-import * as THREE from 'three';
-
-if (location.protocol === 'file:') {
-  document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
-  throw new Error('file:// não suportado');
+} catch (err) {
+  console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
 }
 
 // ======================================================
@@ -1586,16 +1570,11 @@ function updateBankRow(){
 }
 
 // ======================================================
-// SINCRONIZAÇÃO (Refatorada para usar a API segura)
+// SINCRONIZAÇÃO
 // ======================================================
 let loggedUser = null;
 let syncInProgress = false;
 let pushDebounce = null;
-let MetroAPI = null;
-window.addEventListener('fb-ready', () => {
-  MetroAPI = window.MetroAPI;
-  window.MetroAPI = null; // Proteção: remove do window para evitar acesso via console
-}, { once: true });
 
 async function pullProfileFromAccount(user){
   if(!user || syncInProgress || !MetroAPI) return;
@@ -2174,7 +2153,6 @@ camera.lookAt(0, 1.4, player.position.z-12);
 blob.position.set(0, 0.1, 3);
 
 if(MetroAPI) initAuth();
-else window.addEventListener('fb-ready', initAuth, { once: true });
 
 window.addEventListener('beforeunload', ()=>{
   if(loggedUser && MetroAPI){
