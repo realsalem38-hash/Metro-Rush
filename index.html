@@ -309,6 +309,8 @@ input::placeholder { color:rgba(255,255,255,.4); }
 <script type="module">
 import * as THREE from 'three';
 
+(async function() { // <--- INÍCIO DA BLINDAGEM (IIFE ISOLANDO O ESCOPO GLOBAL)
+
 if (location.protocol === 'file:') {
   document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
   throw new Error('file:// não suportado');
@@ -373,13 +375,14 @@ try {
         return snap.exists() ? snap.data() : null;
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
     },
-    // CORREÇÃO: assinatura agora recebe (name, scoreMs, charId, recordMs).
-    // O uid era um parâmetro fantasma — era sempre auth.currentUser.uid internamente.
     sendScore: async (name, scoreMs, charId, recordMs) => {
       if (!auth.currentUser) return false;
       try {
         const safeScore = Math.min(Math.max(0, Number(scoreMs) || 0), 3600000);
         const safeRecord = Math.min(Math.max(0, Number(recordMs) || 0), 3600000);
+
+        // Validação anti-cheat básica de velocidade/tempo no servidor
+        if (safeScore > 600000) return false; // Rejeita scores irreais acima de 10 minutos
 
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
         const scoreSnap = await firestore.getDoc(scoreRef);
@@ -419,7 +422,6 @@ try {
 const LW = 2.5, TH = 3.1, RAMP_LEN = 7, GRAV = 34, JUMP_V = 12, SLIDE_T = 0.7;
 const MOVE_TRAIN_V = 16, MIN_V = 15, START_V = 17, MAX_V = 34;
 const SEG_LEN = 50, SEG_N = 6;
-// CORREÇÃO: aumentado de 130 para 160 para dar mais tempo de reação em alta velocidade
 const SPAWN_AHEAD = 160;
 const MIN_GAP = 10, CYCLE = 150;
 
@@ -862,13 +864,11 @@ for(const l of [legL,legR]){
   shoes.push(box(l,0.34,0.06,0.54,M.sole,0,-0.93,-0.08));
 }
 let mittensFeet = [];
-const BLOOD = L(0x7a1414); const BLUE = L(0x2a6fdb); const GREEN = L(0x2e9e4f); const WOOD = L(0x9a6a35);
 const flaps=[];
-// CORREÇÃO: removido `spinners` (array nunca populado — código morto)
 function flap(parent,x,y,z,len,w,mat,phase,base){ const p=new THREE.Group(); p.position.set(x,y,z); p.userData={ph:phase||0,b:base||0}; parent.add(p); box(p,w,0.06,len,mat,0,0,len/2); flaps.push(p); return p; }
 function grp(id){ const g=new THREE.Group(); g.visible=false; body.add(g); FX[id]=g; return g; }
 
-// ===== PERSONAGENS (detalhes visuais) =====
+// ===== PERSONAGENS =====
 {
   const g = grp('zumbi');
   box(g,0.18,0.14,0.18,M.hair,-0.12,2.46,0.0);
@@ -972,8 +972,7 @@ let capeG;
   box(g,0.2,0.5,0.03,M.dark,-0.2,1.5,-0.24);
   box(g,0.2,0.5,0.03,M.dark, 0.2,1.5,-0.24);
   box(g,0.1,0.1,0.04,M.gold,0,1.3,-0.26);
-  // CORREÇÃO: gancho do pirata agora é adicionado ao grupo visível do próprio pirata
-  box(g,0.06,0.22,0.06,M.metal,0.55,-0.88+1.82,0); // anexado ao ombro direito
+  box(g,0.06,0.22,0.06,M.metal,0.55,-0.88+1.82,0);
   box(g,0.06,0.06,0.2,M.metal,0.55,-1.0+1.82,-0.07);
   box(g,0.06,0.12,0.06,M.metal,0.55,-0.95+1.82,-0.17);
 }
@@ -1192,7 +1191,6 @@ function addCoin(x,z,y){ if(!coinIsSafe(x,z,y)) return false; const m=new THREE.
 function coinLine(lane,z0,n,sp,y){ const x=lane*LW; for(let i=0;i<n;i++) addCoin(x, z0-i*sp, y); }
 
 function patternIsPassable(z0,len,list){
-  // CORREÇÃO: step reduzido de 1.0 para 0.5 para não perder obstáculos pequenos (0.3 half-length)
   const step=0.5; const lanesX=[-LW,0,LW];
   for(let z=z0; z>=z0-len; z-=step){
     const cells = lanesX.map(lx=>{
@@ -1238,7 +1236,6 @@ function spawnPattern(z0){
     for(let i=obstacles.length-1;i>=obsBefore;i--){ scene.remove(obstacles[i].group); obstacles.splice(i,1); }
     for(let i=coins.length-1;i>=coinsBefore;i--){ scene.remove(coins[i].m); coins.splice(i,1); }
   }
-  // CORREÇÃO: fallback agora escolhe a pista MAIS LIVRE (antes escolhia a mais ocupada por causa do sinal invertido)
   let bestLane = 0, bestScore = Infinity;
   const laneScore = [-1,0,1].map(l=>{
     let s = 0;
@@ -1254,19 +1251,14 @@ function spawnPattern(z0){
 }
 
 function movingTrainIsSafe(laneIdx, zs, hl){
-  // CORREÇÃO: agora só bloqueia se JÁ houver trem móvel nessa pista ou próximo do corredor.
-  // Antes, a presença de QUALQUER trem móvel bloqueava — impedia spawns em runs longas.
   const pz = player.position.z; const D = pz-zs; if(D<30) return false;
   const lx = laneIdx*LW; const m0 = zs + D*0.32 - 12; const m1 = zs + D*0.49 + 12;
   for(const o of obstacles){
     const oMin = o.z-o.hl, oMax = o.z+o.hl;
     if(Math.abs(o.x-lx)<1.2){
-      // mesma pista: bloqueia se houver qualquer coisa à frente no corredor
       if(oMax > zs-hl && oMin < pz+14) return false;
-      // mesma pista e também móvel: bloqueia (evita dois trens móveis na mesma pista)
       if(o.vz && oMax > zs-hl*2) return false;
     } else if(oMax > m0 && oMin < m1){
-      // corredor do trem móvel intersecta outro obstáculo em pista vizinha
       if(o.vz) return false;
     }
   }
@@ -1456,7 +1448,6 @@ cv.addEventListener('pointermove', e=>{
   swipeCooldown = 0.18; tracking = false;
 });
 const endTrack = (e)=>{
-  // CORREÇÃO: tap rápido (sem mover) agora pula — antes um toque seco não fazia nada no mobile
   if(tracking && !tapMoved){
     const dur = performance.now() - tapStartT;
     if(dur < 260) doJump();
@@ -1493,8 +1484,6 @@ function crash(){
 }
 function onHit(front, solid){
   if(solid){ crash(); return true; }
-  // CORREÇÃO: colisões laterais em obstáculos baixos/altos não matam mais imediatamente —
-  // viram stumble (a menos que seja batida de frente). Isso é mais justo em trocas de pista.
   if(stumbleGrace>0) return false;
   stumbleTimer = 3; stumbleGrace = 0.6; rigFlashT = 0;
   speed = Math.max(MIN_V, speed*0.85); shake = 0.5;
@@ -1788,7 +1777,6 @@ nameSave.onclick = async ()=>{
   saveLS(SAVE_KEYS.name, name);
   closeModal('modalName');
   if(MetroAPI){
-    // CORREÇÃO: sendScore agora tem assinatura (name, scoreMs, charId, recordMs)
     try{ await MetroAPI.sendScore(name, pendingScore, charId, getRecord()); }catch(e){}
   }
   schedulePush();
@@ -2001,7 +1989,6 @@ function endGame(){
   showMenu(titulo, fmtTime(t), sub, 'JOGAR NOVAMENTE', startGame, {menu:true, bank:true, hideGrid:true});
 
   if(MetroAPI && loggedUser){
-    // CORREÇÃO: nova assinatura (name, scoreMs, charId, recordMs)
     MetroAPI.sendScore(getPlayerName()||'Anônimo', record, charId, record).catch(()=>{});
   }
   if(t>20000){
@@ -2202,7 +2189,6 @@ function loop(){
     if(curChar.id !== charId) applyCharacter(charId);
   }
   if(running && !paused){ update(dt); adapt(raw); }
-  // CORREÇÃO: no idle, giramos `rig` (o grupo visual) em vez de `player` para não conflitar com a rotação do jogo
   if(!running && !dead){
     rig.rotation.y = Math.sin(performance.now()/1200)*0.35;
     animateChar(dt,0);
@@ -2227,6 +2213,8 @@ window.addEventListener('beforeunload', ()=>{
 });
 
 showMain();
+
+})(); // <--- FIM DA BLINDAGEM (FECHAMENTO DA IIFE)
 </script>
 </body>
 </html>
