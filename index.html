@@ -309,7 +309,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
 <script type="module">
 import * as THREE from 'three';
 
-(async function() { // <--- INÍCIO DA BLINDAGEM (IIFE ISOLANDO O ESCOPO GLOBAL)
+(async function() { // <--- INÍCIO DA BLINDAGEM DO ESCOPO
 
 if (location.protocol === 'file:') {
   document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
@@ -317,7 +317,49 @@ if (location.protocol === 'file:') {
 }
 
 // ======================================================
-// FIREBASE E AUTENTICAÇÃO (PROTEGIDO)
+// SISTEMA ANTICHEAT DE STORAGE (HASH CHECKSUM)
+// ======================================================
+const SECRET_SALT = 'MetroRushSecure2026_#k9X!';
+function generateHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString();
+}
+
+function secureSave(k, v) {
+  try {
+    const valStr = typeof v === 'string' ? v : JSON.stringify(v);
+    localStorage.setItem(k, valStr);
+    localStorage.setItem(k + '_chk', generateHash(valStr + SECRET_SALT));
+  } catch(e) {}
+}
+
+function secureLoad(k, fallback) {
+  try {
+    const valStr = localStorage.getItem(k);
+    const chk = localStorage.getItem(k + '_chk');
+    if (valStr === null || chk === null) return fallback;
+    
+    // Se o hash não bater, significa que alteraram o valor diretamente no console/localStorage
+    if (generateHash(valStr + SECRET_SALT) !== chk) {
+      console.warn('[AntiCheat] Adulteração detectada em:', k);
+      localStorage.removeItem(k);
+      localStorage.removeItem(k + '_chk');
+      return fallback;
+    }
+    
+    // Tenta interpretar como JSON se aplicable, senão retorna string
+    try { return JSON.parse(valStr); } catch(_) { return valStr; }
+  } catch(e) {
+    return fallback;
+  }
+}
+
+// ======================================================
+// FIREBASE E AUTENTICAÇÃO
 // ======================================================
 let MetroAPI = null;
 
@@ -381,8 +423,7 @@ try {
         const safeScore = Math.min(Math.max(0, Number(scoreMs) || 0), 3600000);
         const safeRecord = Math.min(Math.max(0, Number(recordMs) || 0), 3600000);
 
-        // Validação anti-cheat básica de velocidade/tempo no servidor
-        if (safeScore > 600000) return false; // Rejeita scores irreais acima de 10 minutos
+        if (safeScore > 600000) return false; // Rejeita scores irreais
 
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
         const scoreSnap = await firestore.getDoc(scoreRef);
@@ -440,8 +481,6 @@ function fmtTime(ms) {
   const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), mmm = ms % 1000;
   return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(mmm).padStart(3,'0');
 }
-function loadLS(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
-function saveLS(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
 
 const CHARS = [
   { id:'zumbi',    name:'Zumbi',       price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
@@ -473,31 +512,34 @@ function getMyPatente(){ return getPatenteForScore(getRecord()); }
 
 const SAVE_KEYS = { owned:'metroOwned', bank:'metroBank', char:'metroChar2', record:'metroRecordMs', name:'metroPlayerName' };
 
-function loadOwned(){ try { const v = JSON.parse(loadLS(SAVE_KEYS.owned)||'[]'); return Array.isArray(v)?v:[]; } catch(e){ return []; } }
+function loadOwned(){ 
+  const v = secureLoad(SAVE_KEYS.owned, ['zumbi']); 
+  return Array.isArray(v)?v:['zumbi']; 
+}
 let owned = loadOwned();
-let bank = Number(loadLS(SAVE_KEYS.bank)||0) || 0;
+let bank = Number(secureLoad(SAVE_KEYS.bank, 0)) || 0;
 
-function saveOwned(){ saveLS(SAVE_KEYS.owned, JSON.stringify(owned)); }
-function saveBank(){ saveLS(SAVE_KEYS.bank, String(bank)); }
-function getRecord(){ return Number(loadLS(SAVE_KEYS.record)||0) || 0; }
-function setRecord(v){ saveLS(SAVE_KEYS.record, String(v)); }
-function getPlayerName(){ return loadLS(SAVE_KEYS.name) || ''; }
+function saveOwned(){ secureSave(SAVE_KEYS.owned, JSON.stringify(owned)); }
+function saveBank(){ secureSave(SAVE_KEYS.bank, String(bank)); }
+function getRecord(){ return Number(secureLoad(SAVE_KEYS.record, 0)) || 0; }
+function setRecord(v){ secureSave(SAVE_KEYS.record, String(v)); }
+function getPlayerName(){ return secureLoad(SAVE_KEYS.name, '') || ''; }
 
 function isOwned(id){ const c=CHARS.find(x=>x.id===id); return !!c && (c.price===0 || owned.includes(id)); }
 
-let charId = loadLS(SAVE_KEYS.char) || CHARS[0].id;
+let charId = secureLoad(SAVE_KEYS.char, CHARS[0].id);
 if(!CHARS.some(c=>c.id===charId)) charId = CHARS[0].id;
 if(!isOwned(charId)) charId = CHARS[0].id;
 
 function clearLocalData(){
-  owned = [];
+  owned = ['zumbi'];
   bank = 0;
   charId = 'zumbi';
   saveOwned();
   saveBank();
-  saveLS(SAVE_KEYS.char, charId);
+  secureSave(SAVE_KEYS.char, charId);
   setRecord(0);
-  saveLS(SAVE_KEYS.name, '');
+  secureSave(SAVE_KEYS.name, '');
   applyCharacter(charId);
   updateHUD();
   updateBankRow();
@@ -518,9 +560,9 @@ if (bank > 100000 || getRecord() > 3600000) {
 const IS_MOBILE = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 const DEF_CFG = { music:70, sfx:80, vib:true, cycle:true, quality: IS_MOBILE ? 'med' : 'high' };
 const cfg = Object.assign({}, DEF_CFG);
-try { Object.assign(cfg, JSON.parse(loadLS('metroCfg') || '{}')); } catch(e) {}
+try { Object.assign(cfg, secureLoad('metroCfg', {})); } catch(e) {}
 if(!['low','med','high'].includes(cfg.quality)) cfg.quality = DEF_CFG.quality;
-function saveCfg(){ saveLS('metroCfg', JSON.stringify(cfg)); }
+function saveCfg(){ secureSave('metroCfg', JSON.stringify(cfg)); }
 function qualityCap(q){
   if(q==='low') return 0.75;
   if(q==='med') return IS_MOBILE ? 1.25 : Math.min(devicePixelRatio, 1.5);
@@ -1310,7 +1352,7 @@ player.position.set(0,0,3);
 applyCharacter(charId);
 function equipChar(id){
   if(!isOwned(id)) return;
-  charId = id; saveLS(SAVE_KEYS.char, id); applyCharacter(id);
+  charId = id; secureSave(SAVE_KEYS.char, id); applyCharacter(id);
   schedulePush();
 }
 function bankRun(){
@@ -1640,7 +1682,7 @@ async function pullProfileFromAccount(user){
     const remoteRecord = Number(remote.recordMs)||0;
     if(remoteRecord > getRecord()) setRecord(remoteRecord);
 
-    if(remote.playerName && !getPlayerName()) saveLS(SAVE_KEYS.name, remote.playerName);
+    if(remote.playerName && !getPlayerName()) secureSave(SAVE_KEYS.name, remote.playerName);
 
     if(remote.charId && CHARS.some(c=>c.id===remote.charId) && isOwned(remote.charId)) equipChar(remote.charId);
 
@@ -1774,7 +1816,7 @@ function askNameAndSend(scoreMs){
 }
 nameSave.onclick = async ()=>{
   const name = nameInput.value.trim() || 'Anônimo';
-  saveLS(SAVE_KEYS.name, name);
+  secureSave(SAVE_KEYS.name, name);
   closeModal('modalName');
   if(MetroAPI){
     try{ await MetroAPI.sendScore(name, pendingScore, charId, getRecord()); }catch(e){}
@@ -1945,11 +1987,11 @@ function resetRun(){
 function startGame(){
   applyCharacter(charId);
   ensureAudio(); resetRun(); running=true; menu.style.display='none';
-  if(!loadLS('metroTutorialSeen')){
+  if(!secureSave('metroTutorialSeen','1')){ // ajuste leve
     const touch = matchMedia('(pointer:coarse)').matches;
     hint.textContent = touch ? 'DESLIZE O DEDO PARA CONTROLAR' : 'W/A/S/D OU SETAS • ESPAÇO PULA • SHIFT DESLIZA';
     hint.style.opacity = 1;
-    setTimeout(()=>{ hint.style.opacity = 0; saveLS('metroTutorialSeen','1'); }, 3500);
+    setTimeout(()=>{ hint.style.opacity = 0; secureSave('metroTutorialSeen','1'); }, 3500);
   } else hint.style.opacity = 0;
   updateHUD(); beginCountdown();
 }
@@ -2185,7 +2227,7 @@ function loop(){
   const raw = clock.getDelta();
   const dt = Math.min(raw, 0.034);
   if(!document.querySelector('#modalShop.open')){
-    if(!isOwned(charId)){ charId = CHARS[0].id; saveLS(SAVE_KEYS.char, charId); }
+    if(!isOwned(charId)){ charId = CHARS[0].id; secureSave(SAVE_KEYS.char, charId); }
     if(curChar.id !== charId) applyCharacter(charId);
   }
   if(running && !paused){ update(dt); adapt(raw); }
@@ -2214,7 +2256,7 @@ window.addEventListener('beforeunload', ()=>{
 
 showMain();
 
-})(); // <--- FIM DA BLINDAGEM (FECHAMENTO DA IIFE)
+})(); // <--- FIM DA BLINDAGEM DO ESCOPO
 </script>
 </body>
 </html>
