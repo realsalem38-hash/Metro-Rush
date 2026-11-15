@@ -121,8 +121,36 @@ button { font-family:inherit; }
 }
 .hud-row { display:flex; justify-content:space-between; align-items:baseline; gap:10px; color:#fff; }
 .hud-row .label { font-size:var(--hud-label); font-weight:700; letter-spacing:1px; color:var(--muted); text-transform:uppercase; }
-.hud-row .val { font-size:var(--hud-val); font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; }
+.hud-row .val { font-size:var(--hud-val); font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; transition:color 0.2s; }
 .hud-row .val.white { color:#fff; }
+.hud-row .val.boost { color:#55d4ff; text-shadow:0 0 10px rgba(85,212,255,0.7); animation:pulseBoost 0.4s infinite alternate; }
+@keyframes pulseBoost { from { transform:scale(1); } to { transform:scale(1.08); } }
+
+/* Elementos flutuantes de animação de moeda para o HUD */
+#floatHudContainer { position:absolute; inset:0; pointer-events:none; z-index:4; overflow:hidden; }
+.float-coin {
+  position:absolute; width:18px; height:18px; border-radius:50%; background:#ffd42a;
+  border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.5);
+  animation: flyToHud 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.float-coin.blue { background:#38b6ff; }
+@keyframes flyToHud {
+  0% { transform: scale(1.4); opacity: 1; }
+  100% { transform: scale(0.3) translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+/* Notificação flutuante de Near Miss */
+#popupContainer { position:absolute; inset:0; pointer-events:none; z-index:4; display:flex; align-items:center; justify-content:center; }
+.popup-text {
+  position:absolute; top:35%; font-size:clamp(18px, 5vw, 26px); font-weight:900; color:#55d4ff;
+  text-shadow:0 2px 10px rgba(0,0,0,0.8), 0 0 15px rgba(85,212,255,0.6);
+  letter-spacing:1.5px; animation: popUpAnim 0.7s ease-out forwards;
+}
+@keyframes popUpAnim {
+  0% { transform: translateY(10px) scale(0.6); opacity: 0; }
+  30% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-35px) scale(1); opacity: 0; }
+}
 
 #menu {
   position:absolute; inset:0; display:flex; justify-content:center; align-items:center;
@@ -284,6 +312,8 @@ input::placeholder { color:rgba(255,255,255,.4); }
 
 <div id="flash"></div>
 <div id="countdown"></div>
+<div id="floatHudContainer"></div>
+<div id="popupContainer"></div>
 
 <div id="hud">
   <div class="hud-left">
@@ -393,7 +423,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
 <script type="module">
 import * as THREE from 'three';
 
-(async function() { // <--- INÍCIO DO ESCOPO FECHADO
+(async function() {
 
 if (location.protocol === 'file:') {
   document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
@@ -425,7 +455,6 @@ function secureLoad(k, fallback) {
     const chk = localStorage.getItem(k + '_chk');
     if (valStr === null || chk === null) return fallback;
     if (generateHash(valStr + SECRET_SALT) !== chk) {
-      console.warn('[AntiCheat] Adulteração detectada em:', k);
       localStorage.removeItem(k);
       localStorage.removeItem(k + '_chk');
       return fallback;
@@ -434,7 +463,6 @@ function secureLoad(k, fallback) {
   } catch(e) { return fallback; }
 }
 
-// [NOME ÚNICO] Normalização idêntica à usada nas regras do Firestore
 function normalizeName(s) {
   return String(s)
     .toLowerCase()
@@ -511,7 +539,6 @@ try {
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
     },
 
-    // [NOME ÚNICO] Verifica se o nome está disponível globalmente
     isNameAvailable: async (name) => {
       if (!auth.currentUser) return false;
       try {
@@ -520,10 +547,9 @@ try {
         const snap = await firestore.getDoc(ref);
         if (!snap.exists()) return true;
         return snap.data().ownerUid === auth.currentUser.uid;
-      } catch (e) { console.error('[Firebase] isNameAvailable:', e); return false; }
+      } catch (e) { return false; }
     },
 
-    // [NOME ÚNICO] Reserva o nome globalmente - TRAVA TOTAL
     reserveName: async (name) => {
       if (!auth.currentUser) return { ok: false, reason: 'not_logged' };
       try {
@@ -537,7 +563,6 @@ try {
         const userRef = firestore.doc(db, 'users', auth.currentUser.uid);
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
 
-        // 1) Verifica se o nome já está em uso por OUTRA pessoa
         const nameSnap = await firestore.getDoc(nameRef);
         if (nameSnap.exists()) {
           const owner = nameSnap.data().ownerUid;
@@ -546,7 +571,6 @@ try {
           }
         }
 
-        // 2) Verifica se o usuário atual já não tem um nome salvo (imutável)
         const userSnap = await firestore.getDoc(userRef);
         if (userSnap.exists()) {
           const existing = String(userSnap.data().playerName || '').trim();
@@ -558,7 +582,6 @@ try {
           }
         }
 
-        // 3) Cria a reserva na coleção 'usernames'
         await firestore.setDoc(nameRef, {
           ownerUid: auth.currentUser.uid,
           nameKey: nameKey,
@@ -566,7 +589,6 @@ try {
           createdAt: firestore.serverTimestamp()
         });
 
-        // 4) Salva no perfil do usuário
         const userPayload = {
           playerName: raw,
           email: auth.currentUser.email,
@@ -586,7 +608,6 @@ try {
           });
         }
 
-        // 5) Atualiza o ranking
         const scoreSnap = await firestore.getDoc(scoreRef);
         if (scoreSnap.exists()) {
           await firestore.setDoc(scoreRef, { name: raw }, { merge: true });
@@ -594,7 +615,6 @@ try {
 
         return { ok: true, reason: 'reserved', nameKey };
       } catch (e) {
-        console.error('[Firebase] reserveName:', e);
         return { ok: false, reason: 'error', error: e };
       }
     },
@@ -628,7 +648,7 @@ try {
         if (charId) updates.charId = String(charId);
         await firestore.setDoc(profileRef, updates, { merge: true });
         return true;
-      } catch(e) { console.error('[Firebase] sendScore:', e); return false; }
+      } catch(e) { return false; }
     },
 
     fetchTop10: async () => {
@@ -636,12 +656,10 @@ try {
         const q = firestore.query(firestore.collection(db, 'scores'), firestore.orderBy('score', 'desc'), firestore.limit(10));
         const snap = await firestore.getDocs(q);
         return snap.docs.map(d => d.data());
-      } catch(e) { console.error('[Firebase] fetchTop10:', e); return []; }
+      } catch(e) { return []; }
     }
   };
-} catch (err) {
-  console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
-}
+} catch (err) {}
 
 // ======================================================
 // CONSTANTES
@@ -793,7 +811,6 @@ let camBack=10, camHeight=5.4, baseFov=65, curFov=65, fovK=0;
 
 function applySize(){ renderer.setPixelRatio(pixelRatio); renderer.setSize(innerWidth,innerHeight); }
 
-// [UI RESPONSIVA] FOV adaptativo
 function fitCamera(){
   const a = innerWidth/innerHeight;
   const w = innerWidth;
@@ -885,7 +902,8 @@ const M = {
   accent:L(0xd32f2f), gold:L(0xffc83a,{emissive:0x4a3300}), dark:L(0x2a2e35), metal:L(0xc8d0da), white:L(0xf3efe6),
   cape:L(0xc62828), pink:L(0xe88aa0), glass:L(0x9ad8ff,{transparent:true,opacity:0.4,depthWrite:false}),
   glowC:new THREE.MeshBasicMaterial({color:0x58f0ff}), glowR:new THREE.MeshBasicMaterial({color:0xff4444}),
-  glowY:new THREE.MeshBasicMaterial({color:0xffe45c}), coin:L(0xffd322,{emissive:0x7a5200}), ramp:L(0xf29b38)
+  glowY:new THREE.MeshBasicMaterial({color:0xffe45c}), coin:L(0xffd322,{emissive:0x7a5200}),
+  coinBlue:L(0x38b6ff,{emissive:0x0055aa}), ramp:L(0xf29b38)
 };
 
 let curChar = CHARS[0];
@@ -1309,7 +1327,6 @@ let capeG;
   for(const p of mittensFeet) p.visible = false;
 }
 
-// ---- NOVOS PERSONAGENS: Vampiro, Cavaleiro fantasma e Taty ----
 M.ghost = L(0xa9bcd0,{emissive:0x1b2f40,transparent:true,opacity:0.85});
 {
   const g = grp('vampiro');
@@ -1470,8 +1487,21 @@ function coinIsSafe(x,z,y){
   }
   return true;
 }
-function addCoin(x,z,y){ if(!coinIsSafe(x,z,y)) return false; const m=new THREE.Mesh(coinGeo,M.coin); m.position.set(x,y,z); scene.add(m); coins.push({m,x,y,z}); return true; }
-function coinLine(lane,z0,n,sp,y){ const x=lane*LW; for(let i=0;i<n;i++) addCoin(x, z0-i*sp, y); }
+function addCoin(x,z,y,isBlue=false){ 
+  if(!coinIsSafe(x,z,y)) return false; 
+  const m=new THREE.Mesh(coinGeo, isBlue ? M.coinBlue : M.coin); 
+  m.position.set(x,y,z); 
+  scene.add(m); 
+  coins.push({m,x,y,z,isBlue}); 
+  return true; 
+}
+function coinLine(lane,z0,n,sp,y){ 
+  const x=lane*LW; 
+  for(let i=0;i<n;i++){
+    const isBlue = (Math.random() < 0.14); // 14% de chance de ser moeda azul 2x
+    addCoin(x, z0-i*sp, y, isBlue); 
+  }
+}
 
 function patternIsPassable(z0,len,list){
   const step=0.5; const lanesX=[-LW,0,LW];
@@ -1579,7 +1609,7 @@ function trySpawnPattern(z0){
 }
 
 // ======================================================
-// ESTADO
+// ESTADO DO JOGO E VARIÁVEIS DE POWERUP
 // ======================================================
 let running=false, paused=false, dead=false, deadT=0, ended=false, counting=false, countStep=-1, countT=0;
 let speed=START_V, speedK=0, runTimeMs=0, coinsN=0, banked=false;
@@ -1590,6 +1620,11 @@ let camX=0, camY=5.4, laneTilt=0, laneYaw=0, laneVelocity=0;
 let prevPlayerX=0, prevPlayerZ=3;
 let prevPlayerY=0;
 player.position.set(0,0,3);
+
+// Variável para o 2x Moedas
+let doubleCoinsTime = 0;
+const floatHudContainer = document.getElementById('floatHudContainer');
+const popupContainer = document.getElementById('popupContainer');
 
 applyCharacter(charId);
 function equipChar(id){
@@ -1668,6 +1703,8 @@ const SFX = {
   jump(){ playTone({f1:340,f2:720,dur:0.18,type:'triangle',vol:0.07,attack:0.006}); playTone({f1:680,f2:1440,dur:0.12,type:'sine',vol:0.03,attack:0.004,delay:0.03}); },
   slide(){ playNoise({f1:1600,f2:260,dur:0.32,filter:'lowpass',vol:0.09,attack:0.01}); playTone({f1:220,f2:110,dur:0.28,type:'sawtooth',vol:0.045,attack:0.01}); },
   coin(){ playTone({f1:1046,f2:1046,dur:0.07,type:'square',vol:0.045,attack:0.002}); playTone({f1:1568,f2:1568,dur:0.1,type:'square',vol:0.04,attack:0.002,delay:0.06}); },
+  coinBlue(){ playTone({f1:880,f2:1760,dur:0.2,type:'sine',vol:0.08,attack:0.002}); playTone({f1:1320,f2:2640,dur:0.25,type:'triangle',vol:0.06,delay:0.08}); },
+  nearMiss(){ playTone({f1:784,f2:1174,dur:0.15,type:'square',vol:0.06,attack:0.002}); },
   stumble(){ playTone({f1:160,f2:90,dur:0.22,type:'sawtooth',vol:0.09,attack:0.005}); playNoise({f1:900,f2:300,dur:0.2,filter:'lowpass',vol:0.06,attack:0.005}); },
   crash(){ playNoise({f1:400,f2:80,dur:0.5,filter:'lowpass',vol:0.14,attack:0.005}); playTone({f1:320,f2:60,dur:0.45,type:'sawtooth',vol:0.1,attack:0.005}); playTone({f1:90,f2:40,dur:0.35,type:'sine',vol:0.16,attack:0.004}); playNoise({f1:3500,f2:800,dur:0.3,filter:'highpass',vol:0.06,attack:0.002,delay:0.03}); },
   gameover(){ playTone({f1:440,f2:220,dur:0.35,type:'triangle',vol:0.06,delay:0.2}); playTone({f1:330,f2:165,dur:0.4,type:'triangle',vol:0.06,delay:0.45}); playTone({f1:220,f2:110,dur:0.6,type:'triangle',vol:0.06,delay:0.75}); },
@@ -1766,7 +1803,46 @@ const flashEl = document.getElementById('flash');
 function vibrate(ms){ if(!cfg.vib) return; try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
 
 // ======================================================
-// COLISÕES BLINDADAS
+// ANIMAÇÃO DE MOEDA VOANDO PARA O HUD & POPUP NEAR MISS
+// ======================================================
+function spawnFloatCoin(isBlue = false) {
+  try {
+    const el = document.createElement('div');
+    el.className = 'float-coin' + (isBlue ? ' blue' : '');
+    
+    // Posição inicial no centro da tela em pixels aproximados
+    const startX = window.innerWidth / 2 + (Math.random() * 40 - 20);
+    const startY = window.innerHeight / 2 + (Math.random() * 40 - 20);
+    
+    // Alvo no canto superior direito (onde fica o balão de moedas)
+    const targetX = window.innerWidth - 65;
+    const targetY = 32;
+    
+    const dx = targetX - startX;
+    const dy = targetY - startY;
+    
+    el.style.left = startX + 'px';
+    el.style.top = startY + 'px';
+    el.style.setProperty('--dx', dx + 'px');
+    el.style.setProperty('--dy', dy + 'px');
+    
+    floatHudContainer.appendChild(el);
+    setTimeout(() => el.remove(), 680);
+  } catch(e) {}
+}
+
+function showPopupText(txt) {
+  try {
+    const el = document.createElement('div');
+    el.className = 'popup-text';
+    el.textContent = txt;
+    popupContainer.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  } catch(e) {}
+}
+
+// ======================================================
+// COLISÕES BLINDADAS E NEAR MISS
 // ======================================================
 const internalCrash = function() {
   if (dead) return;
@@ -1792,6 +1868,22 @@ const internalCheckCollisions = function(pz0, px0){
   const minX = Math.min(px0,px), maxX = Math.max(px0,px);
   const minZ = Math.min(pz0,pz), maxZ = Math.max(pz0,pz);
   const PW = 0.45, PD = 0.45;
+
+  // Verificação de Near Miss (Quase Batida)
+  for(const o of obstacles){
+    const dz = Math.abs(o.z - pz);
+    const dx = Math.abs(o.x - px);
+    if (dz < o.hl + 1.8 && dz > o.hl + 0.1 && dx < 1.3 && !o.passedNearMiss) {
+      if (onGround && py < o.top + 0.5) {
+        o.passedNearMiss = true;
+        runTimeMs += 1000; // +100 pontos bônus no score
+        SFX.nearMiss();
+        showPopupText('+100 NEAR MISS!');
+        break;
+      }
+    }
+  }
+
   for(const o of obstacles){
     if(o.kind==='ramp'){
       const rMinZ = o.z-o.hl, rMaxZ = o.z+o.hl;
@@ -1914,7 +2006,19 @@ document.getElementById('menuBtn').onclick = toMenu;
 let lastTimer=-1, lastCoins=-1, lastScore=-1, lastDanger=null;
 function updateHUD(){
   const t = Math.floor(runTimeMs); if(t!==lastTimer){ timerEl.textContent = fmtTime(t); lastTimer=t; }
-  if(coinsN!==lastCoins){ coinsEl.textContent = coinsN; lastCoins=coinsN; }
+  if(coinsN!==lastCoins){ 
+    coinsEl.textContent = coinsN; 
+    lastCoins=coinsN; 
+  }
+  // Altera visual do contador de moedas se o 2x estiver ativo
+  if (doubleCoinsTime > 0) {
+    coinsEl.className = 'val boost';
+    coinsEl.textContent = coinsN + ' (2X)';
+  } else {
+    coinsEl.className = 'val';
+    coinsEl.textContent = coinsN;
+  }
+
   const s = Math.floor(runTimeMs/10); if(s!==lastScore){ scoreDisplayEl.textContent = s; lastScore=s; }
   const danger = stumbleTimer>0 && !dead; if(danger!==lastDanger){ timerBox.classList.toggle('danger', danger); lastDanger=danger; }
 }
@@ -1929,7 +2033,7 @@ function updateBankRow(){
 }
 
 // ======================================================
-// SINCRONIZAÇÃO
+// SINCRONIZAÇÃO E AUTENTICAÇÃO
 // ======================================================
 let loggedUser = null;
 let syncInProgress = false;
@@ -1973,16 +2077,13 @@ async function pullProfileFromAccount(user){
 
     maybeRequireName(remote);
 
-    // [NOME ÚNICO] Auto-reparo: se já tem nome mas não tem reserva, tenta reservar
     if(remote && remote.playerName){
       try {
         const stillFree = await MetroAPI.isNameAvailable(remote.playerName);
-        if(stillFree){
-          await MetroAPI.reserveName(remote.playerName);
-        }
-      } catch(e) { console.warn('[Nome único] auto-reparo falhou:', e); }
+        if(stillFree){ await MetroAPI.reserveName(remote.playerName); }
+      } catch(e) {}
     }
-  } catch(e){ console.error('[Sync] pull:', e); }
+  } catch(e){}
   syncInProgress = false;
 }
 
@@ -2006,7 +2107,7 @@ async function pushProfileToAccount(){
       recordMs: getRecord(),
       playerName: getPlayerName()
     });
-  } catch(e){ console.error('[Sync] push:', e); }
+  } catch(e){}
 }
 function schedulePush(){
   if(!loggedUser) return;
@@ -2014,10 +2115,6 @@ function schedulePush(){
   pushDebounce = setTimeout(()=>pushProfileToAccount(), 800);
 }
 
-// ======================================================
-// AUTH
-// ======================================================
-let isRegisterMode = false;
 function initAuth(){
   if(!MetroAPI) return;
   MetroAPI.auth.onChange(async (user)=>{
@@ -2073,7 +2170,6 @@ authBtn.onclick = async ()=>{
     if(isRegisterMode) await MetroAPI.auth.createUser(email,pass);
     else await MetroAPI.auth.signIn(email,pass);
   } catch(err){
-    console.error(err);
     if(err.code==='auth/email-already-in-use') authError.textContent = 'Este e-mail já está em uso.';
     else if(err.code==='auth/invalid-email') authError.textContent = 'E-mail inválido.';
     else if(err.code==='auth/wrong-password' || err.code==='auth/invalid-credential') authError.textContent = 'Senha incorreta.';
@@ -2097,9 +2193,6 @@ syncNowBtn.onclick = async ()=>{
   setTimeout(()=>{ btn.textContent = 'Sincronizar agora'; }, 1800);
 };
 
-// ======================================================
-// NOME FIXO / NOME ÚNICO
-// ======================================================
 function openNameModal(locked){
   const modal = document.getElementById('modalName');
   nameInput.value = getPlayerName() || '';
@@ -2127,7 +2220,6 @@ function askNameAndSend(scoreMs){
   openNameModal(true);
 }
 
-// [NOME ÚNICO] Feedback em tempo real no input
 let nameCheckTimer = null;
 nameInput.addEventListener('input', ()=>{
   const errEl = document.getElementById('nameError');
@@ -2162,10 +2254,8 @@ nameInput.addEventListener('input', ()=>{
   }, 500);
 });
 
-// [NOME ÚNICO] Salvar com reserva atômica - TRAVA TOTAL
 nameSave.onclick = async ()=>{
   const raw = nameInput.value.trim();
-
   if (!raw || raw.length < 3) {
     nameInput.focus();
     nameInput.style.borderColor = '#ff6b6b';
@@ -2214,8 +2304,6 @@ nameSave.onclick = async ()=>{
         return;
       }
       
-      // [CORREÇÃO] Se der qualquer outro erro (como rede), NÃO SALVA LOCALMENTE.
-      // Mostra erro para o jogador tentar de novo.
       let errEl = document.getElementById('nameError');
       if (!errEl) {
         errEl = document.createElement('p');
@@ -2224,16 +2312,14 @@ nameSave.onclick = async ()=>{
         nameInput.parentNode.insertBefore(errEl, nameInput.nextSibling);
       }
       errEl.textContent = 'Erro ao salvar. Verifique sua internet e tente novamente.';
-      return; // O código PARA AQUI. Não passa para baixo!
+      return;
     } else {
-      // SUCESSO! O nome foi reservado no banco de dados.
       secureSave(SAVE_KEYS.name, raw);
       try {
         await MetroAPI.sendScore(raw, pendingScore, charId, getRecord());
       } catch(_) {}
     }
   } else {
-    // Se não estiver logado, bloqueia o jogo (não deixa jogar sem conta)
     nameSave.disabled = false;
     nameSave.textContent = oldTxt;
     alert('Você precisa estar logado para definir seu nome.');
@@ -2256,9 +2342,6 @@ nameSave.onclick = async ()=>{
   showMain();
 };
 
-// ======================================================
-// RANKING
-// ======================================================
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 async function openRanking(){
   rankList.innerHTML = '<div class="rk-msg">Carregando...</div>';
@@ -2273,9 +2356,6 @@ async function openRanking(){
   }).join('');
 }
 
-// ======================================================
-// LOJA
-// ======================================================
 let shopSel = charId;
 function buyChar(id){
   const c = CHARS.find(x=>x.id===id);
@@ -2303,9 +2383,6 @@ function renderShop(){
   else { const falta = c.price - bank; shopInfo.textContent = falta>0 ? 'Faltam '+falta+' moedas' : c.name; shopAct.textContent = 'COMPRAR · '+c.price; shopAct.disabled = falta>0; shopAct.onclick = ()=>buyChar(c.id); }
 }
 
-// ======================================================
-// CONFIG
-// ======================================================
 function setTog(b,on){ b.textContent = on?'LIGADO':'DESLIGADO'; b.classList.toggle('on', on); }
 function syncCfgUI(){
   cfgMusic.value = cfg.music; cfgSfx.value = cfg.sfx;
@@ -2319,9 +2396,6 @@ cfgVib.addEventListener('click', ()=>{ cfg.vib = !cfg.vib; setTog(cfgVib, cfg.vi
 cfgCycle.addEventListener('click', ()=>{ cfg.cycle = !cfg.cycle; setTog(cfgCycle, cfg.cycle); saveCfg(); updateSky(0,true); });
 for(const b of cfgQual.children) b.addEventListener('click', ()=>{ cfg.quality = b.dataset.q; applyQuality(); syncCfgUI(); saveCfg(); });
 
-// ======================================================
-// FLUXO DE JOGO
-// ======================================================
 function renderPatBadge(){
   const rec = getRecord();
   const pat = getPatenteForScore(rec);
@@ -2428,7 +2502,7 @@ function resetRun(){
   stumbleTimer=0; stumbleGrace=0; shake=0; rigFlashT=0;
   speed=START_V; speedK=0; runTimeMs=0; coinsN=0; banked=false; runT=0; dustT=0; windT=0;
   dead=false; deadT=0; counting=false; cdEl.style.display='none'; stopMusic();
-  swipeCooldown=0; tracking=false;
+  swipeCooldown=0; tracking=false; doubleCoinsTime=0;
   segments.forEach((s,i)=>{ s.position.z = -i*SEG_LEN; });
   resetBuildings();
   nextZ = player.position.z - 45;
@@ -2566,6 +2640,10 @@ function update(dt){
   if(cfg.cycle) todT += dt;
   updateSky(dt, false);
 
+  if (doubleCoinsTime > 0) {
+    doubleCoinsTime = Math.max(0, doubleCoinsTime - dt);
+  }
+
   speed = Math.min(speed + dt*0.28, MAX_V);
   if(stumbleTimer>0){ speed = Math.min(speed, MAX_V*0.85); speedK = clamp(speed/MAX_V,0,1); }
   else speedK = clamp((speed-START_V)/(MAX_V-START_V),0,1);
@@ -2612,6 +2690,18 @@ function update(dt){
       emit(px+rnd(-0.25,0.25), player.position.y+0.08, pz+0.5, rnd(-0.8,0.8), rnd(0.5,1.5), rnd(0.5,2), 0.55, sliding?0.24:0.17, pick(DUST), 2.2);
     }
   }
+
+  // ---- RASTRO PARA PERSONAGENS CAROS ----
+  if (onGround && Math.random() < 0.6) {
+    if (charId === 'cavaleiro' || charId === 'salem') {
+      emit(px + rnd(-0.2, 0.2), player.position.y + 0.2, pz + 0.2, rnd(-0.2, 0.2), rnd(0.5, 1.2), rnd(0.2, 0.8), 0.4, 0.18, 0x5dd9e6, 1.5);
+    } else if (charId === 'vampiro') {
+      emit(px + rnd(-0.2, 0.2), player.position.y + 0.3, pz + 0.2, rnd(-0.2, 0.2), rnd(0.4, 1.0), rnd(0.2, 0.8), 0.45, 0.16, 0x8b1e2d, 1.0);
+    } else if (charId === 'astro') {
+      emit(px + rnd(-0.15, 0.15), player.position.y + 0.2, pz + 0.2, rnd(-0.2, 0.2), rnd(0.8, 1.8), rnd(0.5, 1.2), 0.35, 0.15, 0xff7a1a, 2.0);
+    }
+  }
+
   windT -= dt;
   if(windT<=0){
     windT = 0.05;
@@ -2625,9 +2715,21 @@ function update(dt){
   for(let i=coins.length-1;i>=0;i--){
     const c = coins[i]; c.m.rotation.y = coinSpin;
     if(Math.abs(c.z-pz)<0.7 && Math.abs(c.x-px)<0.65 && Math.abs(c.y-cy)<0.9){
-      coinsN++;
-      burst(c.x, c.y, c.z, 8, 2.2, 3, 0.45, 0.16, [0xffe45c,0xffffff,0xffd322], 7);
-      scene.remove(c.m); coins.splice(i,1); SFX.coin(); continue;
+      if (c.isBlue) {
+        doubleCoinsTime = 10.0; // 10 segundos de 2x moedas
+        coinsN += (2 * (doubleCoinsTime > 0 ? 1 : 1)); // Garante o 2x imediato também
+        burst(c.x, c.y, c.z, 12, 3.0, 3.5, 0.5, 0.2, [0x38b6ff,0xffffff,0x0055aa], 7);
+        SFX.coinBlue();
+        spawnFloatCoin(true);
+        showPopupText('MOEDA 2X (10s)!');
+      } else {
+        const ganho = doubleCoinsTime > 0 ? 2 : 1;
+        coinsN += ganho;
+        burst(c.x, c.y, c.z, 8, 2.2, 3, 0.45, 0.16, [0xffe45c,0xffffff,0xffd322], 7);
+        SFX.coin();
+        spawnFloatCoin(false);
+      }
+      scene.remove(c.m); coins.splice(i,1); continue;
     }
     if(c.z > pz+14){ scene.remove(c.m); coins.splice(i,1); }
   }
@@ -2703,14 +2805,10 @@ function loop(){
       rig.rotation.y = laneYaw;
     }
     if(!paused){ if(!running) coinSpin += dt*4; updateParticles(dt); updateCamera(dt); }
-  } catch(err) {
-    console.error('[Loop] erro durante update:', err);
-  }
+  } catch(err) {}
   try {
     renderer.render(scene, camera);
-  } catch(err) {
-    console.error('[Loop] erro durante render:', err);
-  }
+  } catch(err) {}
 }
 
 renderer.setAnimationLoop(loop);
@@ -2728,7 +2826,7 @@ window.addEventListener('beforeunload', ()=>{
 
 showMain();
 
-})(); // <--- FIM DA BLINDAGEM DO ESCOPO
+})();
 </script>
 </body>
 </html>
