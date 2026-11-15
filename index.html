@@ -54,7 +54,6 @@
   --hud-label:  clamp(8px,  2.4vw, 10px);
   --hud-val:    clamp(14px, 4.2vw, 18px);
   
-  /* LOJA MAIS COMPACTA */
   --card-pad:   clamp(10px, 3.5vw, 18px);
   --card-gap:   clamp(6px,  2vw, 10px);
   --card-max:   clamp(300px, 92vw, 360px);
@@ -68,12 +67,11 @@
   --stat-font:  clamp(11px, 3.2vw, 14px);
   --stat-lbl:   clamp(8px,  2.4vw, 10px);
   
-  --card-h:     clamp(58px, 16vw, 76px); /* Cards mais baixos */
+  --card-h:     clamp(58px, 16vw, 76px);
   --card-sw:    clamp(24px, 8.4vw, 34px);
   --input-pad:  clamp(10px, 3.2vw, 14px);
   --input-font: clamp(13px, 3.8vw, 16px);
   --close-size: clamp(28px, 9vw,   38px);
-  --preview-h:  clamp(90px, 24vw, 120px); /* Palco de prévia menor */
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -205,39 +203,6 @@ button { font-family:inherit; }
 #modalName.locked .close-x { display: none; }
 #modalName.locked { pointer-events: auto; }
 
-/* ===== PREVIEW DE PERSONAGEM NA LOJA (Palco transparente) ===== */
-#shopPreview {
-  position:relative; width:100%; height:var(--preview-h);
-  border-radius:12px; overflow:hidden;
-  background: transparent; /* Deixa a câmera 3D aparecer atrás */
-  border:1px solid var(--line);
-  display:flex; align-items:flex-end; justify-content:center;
-  margin-bottom: 4px;
-  pointer-events: none; /* Permite clicar através do palco */
-}
-#shopPreview::before {
-  content:"";
-  position:absolute; left:50%; bottom:12%;
-  width:50%; height:14%;
-  transform:translateX(-50%);
-  border-radius:50%;
-  background:radial-gradient(ellipse at center, var(--prev-accent, #ffd42a) 0%, rgba(0,0,0,0) 70%);
-  opacity:.5; filter:blur(6px);
-  transition: background .2s;
-  pointer-events: none;
-}
-#shopPreviewName {
-  position:absolute; top:8px; left:50%; transform:translateX(-50%);
-  font-size:var(--stat-font); font-weight:900; letter-spacing:1.5px; text-transform:uppercase;
-  color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.8);
-  white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;
-}
-#shopPreviewTag {
-  position:absolute; top:26px; left:50%; transform:translateX(-50%);
-  font-size:calc(var(--stat-lbl) - 1px); font-weight:800; letter-spacing:1px; text-transform:uppercase;
-  color:rgba(255,255,255,.6); text-shadow:0 2px 4px rgba(0,0,0,.8);
-}
-
 .bank { align-self:center; font-size:var(--stat-font); font-weight:700; color:var(--muted); padding:4px 12px; border-radius:999px; background:rgba(255,212,42,.08); }
 .bank b { color:var(--accent); font-size:calc(var(--stat-font) + 1px); margin-left:4px; font-variant-numeric:tabular-nums; }
 
@@ -256,7 +221,6 @@ button { font-family:inherit; }
 .card.sel { border-color:var(--accent); background:rgba(255,212,42,.12); color:var(--accent); opacity:1; }
 .card span:not(.pr) { font-size:var(--stat-lbl); text-align:center; line-height:1.1; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 
-/* Miniatura compacta */
 .card canvas.charMini { width:34px; height:34px; display:block; margin-bottom:2px; pointer-events:none; }
 
 .sw { display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.28); flex:none; }
@@ -335,10 +299,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
     <div class="menu-card" style="max-height: 90vh; padding-bottom: 10px;">
       <button class="close-x" data-close="modalShop" aria-label="Fechar">&times;</button>
       <h1 class="ttl">Loja</h1>
-      <div id="shopPreview">
-        <div id="shopPreviewName">Zumbi</div>
-        <div id="shopPreviewTag">PRÉVIA</div>
-      </div>
       <div class="bank">Moedas <b id="shopBank">0</b></div>
       <div id="shopGrid"></div>
       <div id="shopInfo"></div>
@@ -409,9 +369,6 @@ import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
 (async function() {
 
-// ======================================================
-// SISTEMA ANTICHEAT DE STORAGE
-// ======================================================
 const SECRET_SALT = 'MetroRushSecure2026_#k9X!';
 function generateHash(str) {
   let hash = 0;
@@ -434,7 +391,6 @@ function secureLoad(k, fallback) {
     const chk = localStorage.getItem(k + '_chk');
     if (valStr === null || chk === null) return fallback;
     if (generateHash(valStr + SECRET_SALT) !== chk) {
-      console.warn('[AntiCheat] Adulteração detectada em:', k);
       localStorage.removeItem(k);
       localStorage.removeItem(k + '_chk');
       return fallback;
@@ -451,9 +407,6 @@ function normalizeName(s) {
     .slice(0, 12) || 'x';
 }
 
-// ======================================================
-// FIREBASE E AUTENTICAÇÃO
-// ======================================================
 let MetroAPI = null;
 
 try {
@@ -502,7 +455,7 @@ try {
         if (!existingName) payload.playerName = String(data.playerName || '').slice(0, 12);
         await firestore.setDoc(ref, payload, { merge: true });
         return true;
-      } catch(e) { console.error('[Firebase] saveProfile:', e); return false; }
+      } catch(e) { return false; }
     },
     loadProfile: async () => {
       if (!auth.currentUser) return null;
@@ -593,13 +546,8 @@ try {
       } catch(e) { return []; }
     }
   };
-} catch (err) {
-  console.warn('[Metro Rush] Firebase indisponível — modo offline.', err);
-}
+} catch (err) {}
 
-// ======================================================
-// CONSTANTES
-// ======================================================
 const LW = 2.5, TH = 3.1, RAMP_LEN = 7, GRAV = 34, JUMP_V = 12, SLIDE_T = 0.7;
 const MOVE_TRAIN_V = 16, MIN_V = 15, START_V = 17, MAX_V = 34;
 const SEG_LEN = 50, SEG_N = 6;
@@ -641,59 +589,45 @@ const CHARS = [
   { id:'cavaleiro', name:'Cav. Fantasma', price:7500, torso:0x8fa6bd, belt:0x5dd9e6, legs:0x6f86a0, skin:0xa9bcd0, shoe:0x3a4a5c, hair:0xa9bcd0, accent:0x5dd9e6, armsFwd:false }
 ];
 const hex6 = n => '#' + n.toString(16).padStart(6,'0');
-function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
 
-// ======================================================
-// MINIATURA 2D DO PERSONAGEM (CORRIGIDA E COMPLETA)
-// ======================================================
 function drawCharMini(ctx, c, size) {
   const s = size / 100;
   ctx.clearRect(0, 0, size, size);
   ctx.save();
-  // Centraliza a cabeça no topo (Y = 18) e os pés na base (Y = 95)
   ctx.translate(size / 2, size * 0.85); 
   ctx.scale(s * 1.15, s * 1.15);
 
   const col = n => hex6(n);
 
-  // pernas
   ctx.fillStyle = col(c.legs);
   ctx.fillRect(-16, -28, 13, 28);
   ctx.fillRect(3, -28, 13, 28);
-  // sapatos
   ctx.fillStyle = col(c.shoe);
   ctx.fillRect(-18, -6, 16, 6);
   ctx.fillRect(2, -6, 16, 6);
   
-  // tronco
   ctx.fillStyle = col(c.torso);
   ctx.fillRect(-20, -58, 40, 30);
-  // cinto
   ctx.fillStyle = col(c.belt);
   ctx.fillRect(-20, -30, 40, 6);
   
-  // braços
   ctx.fillStyle = col(c.torso);
   ctx.fillRect(-26, -56, 6, 24);
   ctx.fillRect(20, -56, 6, 24);
-  // mãos
   ctx.fillStyle = col(c.skin);
   ctx.fillRect(-26, -32, 6, 6);
   ctx.fillRect(20, -32, 6, 6);
   
-  // cabeça
   ctx.fillStyle = col(c.skin);
   ctx.beginPath();
   ctx.arc(0, -70, 14, 0, Math.PI * 2);
   ctx.fill();
   
-  // cabelo base
   ctx.fillStyle = col(c.hair);
   ctx.beginPath();
   ctx.arc(0, -74, 14, Math.PI * 0.98, Math.PI * 2.02);
   ctx.fill();
 
-  // detalhes únicos
   const id = c.id;
   if (id === 'rei') {
     ctx.fillStyle = '#ffd42a';
@@ -777,7 +711,6 @@ function drawCharMini(ctx, c, size) {
     ctx.fillRect(-20, -80, 8, 20);
     ctx.fillRect(12, -80, 8, 20);
   } else {
-    // zumbi
     ctx.fillStyle = '#e8c84a';
     ctx.fillRect(-8, -72, 4, 3);
     ctx.fillRect(4, -72, 4, 3);
@@ -786,7 +719,6 @@ function drawCharMini(ctx, c, size) {
     ctx.fillRect(2, -82, 6, 6);
   }
 
-  // olhos
   ctx.fillStyle = '#111';
   ctx.fillRect(-8, -70, 3, 3);
   ctx.fillRect(4, -70, 3, 3);
@@ -843,9 +775,6 @@ function clearLocalData(){
 function checkLoginState(){ if (!MetroAPI) return true; return loggedUser !== null; }
 if (bank > 100000 || getRecord() > 3600000) clearLocalData();
 
-// ======================================================
-// CONFIG
-// ======================================================
 const IS_MOBILE = matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 const DEF_CFG = { music:70, sfx:80, vib:true, cycle:true, quality: IS_MOBILE ? 'med' : 'high' };
 const cfg = Object.assign({}, DEF_CFG);
@@ -860,9 +789,6 @@ function qualityCap(q){
 const PQ_MAP = { low:0.35, med:0.7, high:1 };
 let PQ = PQ_MAP[cfg.quality];
 
-// ======================================================
-// RENDERER E CENA
-// ======================================================
 let MAX_PR = qualityCap(cfg.quality);
 let pixelRatio = Math.min(devicePixelRatio, MAX_PR);
 
@@ -1023,9 +949,6 @@ function bake(parts){
   return g;
 }
 
-// ======================================================
-// CENÁRIO
-// ======================================================
 const lampParts = [];
 function segmentGeometry(){
   const parts = [];
@@ -1179,9 +1102,6 @@ for(const side of [-1,1]){
 function resetBuildings(){ for(const b of buildings) b.position.z = 20-b.userData.i*B_STEP; }
 resetBuildings();
 
-// ======================================================
-// PERSONAGEM
-// ======================================================
 const player = new THREE.Group(); scene.add(player);
 const rig = new THREE.Group(); player.add(rig);
 const body = new THREE.Group(); body.scale.setScalar(0.8); rig.add(body);
@@ -1456,9 +1376,6 @@ const blob = new THREE.Mesh(
 );
 scene.add(blob);
 
-// ======================================================
-// PARTÍCULAS
-// ======================================================
 const PMAX = 240;
 const P = Array.from({length:PMAX}, ()=>({life:0,max:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,s:0.1,g:0,st:1}));
 const pMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1), new THREE.MeshBasicMaterial({color:0xffffff}), PMAX);
@@ -1499,9 +1416,6 @@ function updateParticles(dt){
 }
 function clearParticles(){ for(const p of P) p.life = 0; }
 
-// ======================================================
-// OBSTÁCULOS E MOEDAS
-// ======================================================
 const TRAIN_COLORS = [[0xd6dadf,0x2f78c4],[0x3f86c8,0xf2f2f2],[0xe9b82e,0x333b48],[0xc94a3f,0xf1e9d8]];
 const trainCache = {};
 function trainGeo(len,v){
@@ -1691,9 +1605,6 @@ function trySpawnPattern(z0){
   return finish(14);
 }
 
-// ======================================================
-// ESTADO
-// ======================================================
 let running=false, paused=false, dead=false, deadT=0, ended=false, counting=false, countStep=-1, countT=0;
 let speed=START_V, speedK=0, runTimeMs=0, coinsN=0, banked=false;
 let lane=0, prevLane=0, onGround=true, vy=0, sliding=false, slideT=0, wantRoll=false;
@@ -1704,7 +1615,6 @@ let prevPlayerX=0, prevPlayerZ=3;
 let prevPlayerY=0;
 player.position.set(0,0,3);
 
-// Estado da animação
 const anim = {
   phase: 0,
   squash: 0,
@@ -1733,9 +1643,6 @@ function bankRun(){
   }
 }
 
-// ======================================================
-// ÁUDIO
-// ======================================================
 let actx=null, musicGain=null, noiseBuf=null;
 function applyAudioCfg(){ if(musicGain) musicGain.gain.value = cfg.music/100*0.5; }
 function ensureAudio(){
@@ -1836,9 +1743,6 @@ function musicTick(){
 function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null; } }
 function startMusic(){ if(!actx || !musicGain || cfg.music<=0) return; stopMusic(); nextNoteT = actx.currentTime + 0.06; musicTimer = setInterval(musicTick,30); }
 
-// ======================================================
-// INPUT
-// ======================================================
 function canAct(){ return running && !paused && !dead && !counting; }
 function moveLane(d){ if(!canAct()) return; const n = clamp(lane+d,-1,1); if(n!==lane){ prevLane=lane; lane=n; SFX.lane(); } }
 function doJump(){ if(!canAct()) return; if(!onGround) return; sliding=false; onGround=false; vy=JUMP_V; anim.squash = -0.35; SFX.jump(); burst(player.position.x, player.position.y+0.1, player.position.z, 8, 2.2, 1.4, 0.45, 0.18, DUST, 3); }
@@ -1896,9 +1800,6 @@ function groundAt(x,z,y){
 const flashEl = document.getElementById('flash');
 function vibrate(ms){ if(!cfg.vib) return; try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
 
-// ======================================================
-// COLISÕES BLINDADAS
-// ======================================================
 const internalCrash = function() {
   if (dead) return;
   dead=true; deadT=0; shake=0.9; stopMusic();
@@ -1970,9 +1871,6 @@ const internalCheckCollisions = function(pz0, px0){
   }
 };
 
-// ======================================================
-// UI
-// ======================================================
 const timerEl = document.getElementById('timerTxt');
 const timerBox = document.getElementById('timerBox');
 const coinsEl = document.getElementById('coins');
@@ -1991,7 +1889,6 @@ const shopGrid = document.getElementById('shopGrid');
 const shopInfo = document.getElementById('shopInfo');
 const shopAct = document.getElementById('shopAct');
 const shopBank = document.getElementById('shopBank');
-const shopPreviewName = document.getElementById('shopPreviewName');
 const cfgMusic = document.getElementById('cfgMusic');
 const cfgSfx = document.getElementById('cfgSfx');
 const cfgVib = document.getElementById('cfgVib');
@@ -2017,7 +1914,7 @@ function closeModal(id){
   const m=document.getElementById(id);
   if(id==='modalName' && m && m.classList.contains('locked')) return;
   if(m) m.classList.remove('open');
-  if(id==='modalShop'){ applyCharacter(charId); updateShopPreview(); }
+  if(id==='modalShop') applyCharacter(charId);
 }
 function closeAllModals(){
   document.querySelectorAll('.modal.open').forEach(m=>{
@@ -2036,7 +1933,7 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{
 
 document.getElementById('openShop').onclick = ()=>{
   if(!checkLoginState()){ alert('Você precisa entrar na sua conta para acessar a loja.'); return; }
-  shopSel = charId; renderShop(); updateShopPreview(); openModal('modalShop'); SFX.ui();
+  shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui();
 };
 document.getElementById('openCfg').onclick = ()=>{ syncCfgUI(); openModal('modalCfg'); SFX.ui(); };
 document.getElementById('openRank').onclick = ()=>{ openModal('modalRank'); openRanking(); SFX.ui(); };
@@ -2060,9 +1957,6 @@ function updateBankRow(){
     `<div class="stat"><span>Patente</span><b style="color:${isLogged ? pat.cor : '#888'}">${isLogged ? pat.nome : '---'}</b></div>`;
 }
 
-// ======================================================
-// SINCRONIZAÇÃO
-// ======================================================
 let loggedUser = null;
 let syncInProgress = false;
 let pushDebounce = null;
@@ -2099,7 +1993,7 @@ async function pullProfileFromAccount(user){
     setTimeout(()=>msg.remove(), 3200);
 
     updateBankRow(); updateHUD(); updateAccountUI();
-    if(document.getElementById('modalShop').classList.contains('open')) { renderShop(); updateShopPreview(); }
+    if(document.getElementById('modalShop').classList.contains('open')) renderShop();
 
     maybeRequireName(remote);
 
@@ -2137,9 +2031,6 @@ function schedulePush(){
   pushDebounce = setTimeout(()=>pushProfileToAccount(), 800);
 }
 
-// ======================================================
-// AUTH
-// ======================================================
 let isRegisterMode = false;
 function initAuth(){
   if(!MetroAPI) return;
@@ -2219,9 +2110,6 @@ syncNowBtn.onclick = async ()=>{
   setTimeout(()=>{ btn.textContent = 'Sincronizar agora'; }, 1800);
 };
 
-// ======================================================
-// NOME FIXO / NOME ÚNICO
-// ======================================================
 function openNameModal(locked){
   const modal = document.getElementById('modalName');
   nameInput.value = getPlayerName() || '';
@@ -2347,9 +2235,6 @@ nameSave.onclick = async ()=>{
   updateAccountUI(); updateBankRow(); schedulePush(); showMain();
 };
 
-// ======================================================
-// RANKING
-// ======================================================
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 async function openRanking(){
   rankList.innerHTML = '<div class="rk-msg">Carregando...</div>';
@@ -2364,30 +2249,16 @@ async function openRanking(){
   }).join('');
 }
 
-// ======================================================
-// LOJA
-// ======================================================
 let shopSel = charId;
-let previewCharId = null; // personagem que está girando no palco
 
-function updateShopPreview(){
-  const c = CHARS.find(x=>x.id===shopSel) || CHARS[0];
-  shopPreviewName.textContent = c.name;
-  const prev = document.getElementById('shopPreview');
-  prev.style.setProperty('--prev-accent', hex6(c.accent));
-  // ativa o personagem no palco 3D (o mesmo modelo do jogador)
-  if (curChar.id !== c.id) {
-    applyCharacter(c.id);
-  }
-  previewCharId = c.id;
-}
+function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
 
 function buyChar(id){
   const c = CHARS.find(x=>x.id===id);
   if(!c || isOwned(id) || bank < c.price) return;
   bank -= c.price; owned.push(id);
   saveOwned(); saveBank(); equipChar(id);
-  SFX.buy(); renderShop(); updateShopPreview(); schedulePush();
+  SFX.buy(); renderShop(); schedulePush();
 }
 function renderShop(){
   shopGrid.innerHTML = '';
@@ -2396,7 +2267,6 @@ function renderShop(){
     const b = document.createElement('button'); b.type='button';
     b.className = 'card' + (c.id===shopSel?' sel':'') + (own?'':' locked') + (c.id===charId?' eq':'');
     const tag = c.id===charId ? 'EM USO' : own ? 'SEU' : String(c.price);
-    // miniatura 2D
     const mini = makeMiniCanvas(c);
     b.appendChild(mini);
     const nameEl = document.createElement('span');
@@ -2406,20 +2276,17 @@ function renderShop(){
     priceEl.className = 'pr';
     priceEl.textContent = tag;
     b.appendChild(priceEl);
-    b.addEventListener('click', ()=>{ shopSel = c.id; SFX.ui(); renderShop(); updateShopPreview(); });
+    b.addEventListener('click', ()=>{ shopSel = c.id; SFX.ui(); renderShop(); });
     shopGrid.appendChild(b);
   }
   shopBank.textContent = bank;
   const c = CHARS.find(x=>x.id===shopSel) || CHARS[0]; const own = isOwned(c.id);
   shopAct.disabled = false;
   if(c.id===charId){ shopInfo.textContent = c.name + ' · equipado'; shopAct.textContent = 'EQUIPADO'; shopAct.disabled = true; shopAct.onclick = null; }
-  else if(own){ shopInfo.textContent = c.name; shopAct.textContent = 'EQUIPAR'; shopAct.onclick = ()=>{ equipChar(c.id); SFX.equip(); renderShop(); updateShopPreview(); }; }
+  else if(own){ shopInfo.textContent = c.name; shopAct.textContent = 'EQUIPAR'; shopAct.onclick = ()=>{ equipChar(c.id); SFX.equip(); renderShop(); }; }
   else { const falta = c.price - bank; shopInfo.textContent = falta>0 ? 'Faltam '+falta+' moedas' : c.name; shopAct.textContent = 'COMPRAR · '+c.price; shopAct.disabled = falta>0; shopAct.onclick = ()=>buyChar(c.id); }
 }
 
-// ======================================================
-// CONFIG
-// ======================================================
 function setTog(b,on){ b.textContent = on?'LIGADO':'DESLIGADO'; b.classList.toggle('on', on); }
 function syncCfgUI(){
   cfgMusic.value = cfg.music; cfgSfx.value = cfg.sfx;
@@ -2433,9 +2300,6 @@ cfgVib.addEventListener('click', ()=>{ cfg.vib = !cfg.vib; setTog(cfgVib, cfg.vi
 cfgCycle.addEventListener('click', ()=>{ cfg.cycle = !cfg.cycle; setTog(cfgCycle, cfg.cycle); saveCfg(); updateSky(0,true); });
 for(const b of cfgQual.children) b.addEventListener('click', ()=>{ cfg.quality = b.dataset.q; applyQuality(); syncCfgUI(); saveCfg(); });
 
-// ======================================================
-// FLUXO DE JOGO
-// ======================================================
 function renderPatBadge(){
   const rec = getRecord();
   const pat = getPatenteForScore(rec);
@@ -2609,9 +2473,6 @@ function endGame(){
   if(t>20000 && !loggedUser && MetroAPI){ setTimeout(()=>askNameAndSend(t), 600); }
 }
 
-// ======================================================
-// ANIMAÇÃO DO PERSONAGEM (REFINADA)
-// ======================================================
 function animateChar(dt, tx){
   if(dead){
     rig.visible = true;
@@ -2912,48 +2773,21 @@ function loop(){
   const raw = clock.getDelta();
   const dt = Math.min(raw, 0.034);
   
-  const inShop = document.getElementById('modalShop').classList.contains('open');
-  
   try {
-    if(!inShop){
-      if(!isOwned(charId)){ charId = CHARS[0].id; secureSave(SAVE_KEYS.char, charId); }
-      if(curChar.id !== charId) applyCharacter(charId);
-    }
+    if(!isOwned(charId)){ charId = CHARS[0].id; secureSave(SAVE_KEYS.char, charId); }
+    if(curChar.id !== charId) applyCharacter(charId);
+
     if(running && !paused){ update(dt); adapt(raw); }
     
-    if(inShop){
-      // MODO LOJA: Foca a câmera no personagem que está girando no palco
-      const tx = player.position.x;
-      const ty = player.position.y + 1.0;
-      const tz = player.position.z;
-      
-      // Move a câmera para perto
-      camera.position.set(tx, ty + 0.2, tz + 3.2);
-      camera.lookAt(tx, ty - 0.1, tz);
-      
-      // Gira o personagem 360 graus
-      rig.rotation.y = performance.now() / 1000 * 1.5;
-      rig.rotation.x = 0;
-      rig.rotation.z = 0;
-      
-      // Faz a animação de respirar da loja
-      const t = performance.now()/1000;
-      rig.position.y = 0.76 + Math.sin(t*1.6)*0.012;
-      
-      // Esconde a sombra do chão
-      blob.visible = false;
-      
+    blob.visible = true;
+    
+    if(!running && !dead){
+      rig.rotation.y = Math.sin(performance.now()/1200)*0.35;
+      animateChar(dt,0);
     } else {
-      blob.visible = true;
-      
-      if(!running && !dead){
-        rig.rotation.y = Math.sin(performance.now()/1200)*0.35;
-        animateChar(dt,0);
-      } else {
-        rig.rotation.y = anim.leanY;
-      }
-      if(!paused){ if(!running) coinSpin += dt*4; updateParticles(dt); updateCamera(dt); }
+      rig.rotation.y = anim.leanY;
     }
+    if(!paused){ if(!running) coinSpin += dt*4; updateParticles(dt); updateCamera(dt); }
   } catch(err) { console.error('[Loop] erro durante update:', err); }
   
   try { renderer.render(scene, camera); }
@@ -2977,5 +2811,4 @@ showMain();
 
 })();
 </script>
-</body>
 </html>
