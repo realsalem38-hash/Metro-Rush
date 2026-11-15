@@ -70,6 +70,7 @@
   --input-pad:  clamp(10px, 3.2vw, 14px);
   --input-font: clamp(13px, 3.8vw, 16px);
   --close-size: clamp(28px, 9vw,   38px);
+  --preview-h:  clamp(120px, 34vw, 170px);
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -201,13 +202,49 @@ button { font-family:inherit; }
 #modalName.locked .close-x { display: none; }
 #modalName.locked { pointer-events: auto; }
 
+/* ===== PREVIEW DE PERSONAGEM NO PALCO DA LOJA ===== */
+#shopPreview {
+  position:relative; width:100%; height:var(--preview-h);
+  border-radius:14px; overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 34%, rgba(0,0,0,0) 62%),
+    linear-gradient(180deg, rgba(40,60,100,.55) 0%, rgba(10,18,34,.85) 100%);
+  border:1px solid var(--line);
+  display:flex; align-items:flex-end; justify-content:center;
+  box-shadow: inset 0 -20px 40px rgba(0,0,0,.35);
+}
+#shopPreview::before {
+  content:"";
+  position:absolute; left:50%; bottom:14%;
+  width:56%; height:16%;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:radial-gradient(ellipse at center, var(--prev-accent, #ffd42a) 0%, rgba(0,0,0,0) 70%);
+  opacity:.35; filter:blur(6px);
+  pointer-events:none;
+  transition: background .2s;
+}
+#shopPreviewName {
+  position:absolute; top:10px; left:50%; transform:translateX(-50%);
+  font-size:var(--stat-font); font-weight:900; letter-spacing:2px; text-transform:uppercase;
+  color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);
+  white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;
+  pointer-events:none;
+}
+#shopPreviewTag {
+  position:absolute; top:32px; left:50%; transform:translateX(-50%);
+  font-size:var(--stat-lbl); font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
+  color:rgba(255,255,255,.55);
+  pointer-events:none;
+}
+
 .bank { align-self:center; font-size:var(--stat-font); font-weight:700; color:var(--muted); padding:5px 12px; border-radius:999px; background:rgba(255,212,42,.08); }
 .bank b { color:var(--accent); font-size:calc(var(--stat-font) + 1px); margin-left:4px; font-variant-numeric:tabular-nums; }
 #shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%; }
 .card {
   border:1.5px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04); color:rgba(255,255,255,.88);
-  padding:8px 3px; font-size:var(--stat-lbl); font-weight:700; cursor:pointer; transition:all .15s ease;
-  display:flex; flex-direction:column; align-items:center; gap:2px; min-height:var(--card-h); justify-content:center;
+  padding:6px 3px 8px; font-size:var(--stat-lbl); font-weight:700; cursor:pointer; transition:all .15s ease;
+  display:flex; flex-direction:column; align-items:center; gap:3px; min-height:var(--card-h); justify-content:center;
   min-width:0; overflow:hidden;
 }
 .card .pr { font-size:var(--stat-lbl); font-weight:800; letter-spacing:.4px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -216,6 +253,7 @@ button { font-family:inherit; }
 .card.eq .pr { color:var(--ok); }
 .card.sel { border-color:var(--accent); background:rgba(255,212,42,.12); color:var(--accent); opacity:1; }
 .card span:not(.pr) { font-size:var(--stat-lbl); text-align:center; line-height:1.15; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.card canvas.charMini { width:100%; aspect-ratio:1/1; max-height:44px; display:block; }
 .sw { display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.28); flex:none; }
 .card .sw { width:var(--card-sw); height:var(--card-sw); border-radius:8px; margin-bottom:2px; }
 #shopInfo { font-size:var(--stat-font); font-weight:700; color:var(--muted); text-align:center; min-height:16px; }
@@ -310,6 +348,10 @@ input::placeholder { color:rgba(255,255,255,.4); }
     <div class="menu-card">
       <button class="close-x" data-close="modalShop" aria-label="Fechar">&times;</button>
       <h1 class="ttl">Loja</h1>
+      <div id="shopPreview">
+        <div id="shopPreviewName">Zumbi</div>
+        <div id="shopPreviewTag">PRÉVIA</div>
+      </div>
       <div class="bank">Moedas <b id="shopBank">0</b></div>
       <div id="shopGrid"></div>
       <div id="shopInfo"></div>
@@ -613,6 +655,165 @@ const CHARS = [
 ];
 const hex6 = n => '#' + n.toString(16).padStart(6,'0');
 function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
+
+// ======================================================
+// MINIATURA 2D DO PERSONAGEM (para os cards da loja)
+// ======================================================
+function drawCharMini(ctx, c, size) {
+  const s = size / 100;
+  ctx.clearRect(0, 0, size, size);
+  ctx.save();
+  ctx.translate(size / 2, size * 0.9);
+  ctx.scale(s * 1.15, s * 1.15);
+
+  const col = n => hex6(n);
+  const dark = (hex, f) => {
+    const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
+    return `rgb(${Math.floor(r*f)},${Math.floor(g*f)},${Math.floor(b*f)})`;
+  };
+
+  // pernas
+  ctx.fillStyle = col(c.legs);
+  ctx.fillRect(-22, -32, 18, 32);
+  ctx.fillRect(4, -32, 18, 32);
+  // sapatos
+  ctx.fillStyle = col(c.shoe);
+  ctx.fillRect(-24, -6, 22, 8);
+  ctx.fillRect(2, -6, 22, 8);
+  // tronco
+  ctx.fillStyle = col(c.torso);
+  ctx.fillRect(-26, -68, 52, 38);
+  // cinto
+  ctx.fillStyle = col(c.belt);
+  ctx.fillRect(-26, -34, 52, 8);
+  // braços
+  ctx.fillStyle = col(c.torso);
+  ctx.fillRect(-34, -66, 10, 30);
+  ctx.fillRect(24, -66, 10, 30);
+  // mãos
+  ctx.fillStyle = col(c.skin);
+  ctx.fillRect(-34, -38, 10, 8);
+  ctx.fillRect(24, -38, 10, 8);
+  // cabeça
+  ctx.fillStyle = col(c.skin);
+  ctx.beginPath();
+  ctx.arc(0, -80, 18, 0, Math.PI * 2);
+  ctx.fill();
+  // cabelo base
+  ctx.fillStyle = col(c.hair);
+  ctx.beginPath();
+  ctx.arc(0, -85, 18, Math.PI * 0.98, Math.PI * 2.02);
+  ctx.fill();
+
+  // detalhes únicos
+  const id = c.id;
+  if (id === 'rei') {
+    ctx.fillStyle = '#ffd42a';
+    ctx.beginPath();
+    ctx.moveTo(-16, -96); ctx.lineTo(-16, -108); ctx.lineTo(-8, -102);
+    ctx.lineTo(0, -112); ctx.lineTo(8, -102); ctx.lineTo(16, -108);
+    ctx.lineTo(16, -96); ctx.closePath(); ctx.fill();
+  } else if (id === 'samurai') {
+    ctx.fillStyle = col(c.accent);
+    ctx.fillRect(-20, -96, 40, 8);
+    ctx.fillRect(-4, -114, 8, 18);
+    ctx.fillStyle = col(c.hair);
+    ctx.beginPath();
+    ctx.arc(0, -92, 18, Math.PI, Math.PI * 2);
+    ctx.fill();
+  } else if (id === 'ninja') {
+    ctx.fillStyle = col(c.hair);
+    ctx.fillRect(-18, -94, 36, 26);
+    ctx.fillStyle = col(c.skin);
+    ctx.fillRect(-18, -86, 36, 7);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-10, -84, 6, 4);
+    ctx.fillRect(4, -84, 6, 4);
+  } else if (id === 'pirata') {
+    ctx.fillStyle = col(c.hair);
+    ctx.beginPath();
+    ctx.arc(0, -82, 18, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-22, -98, 44, 6);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(-8, -94, 16, 6);
+  } else if (id === 'astro') {
+    ctx.fillStyle = 'rgba(154,216,255,.55)';
+    ctx.beginPath();
+    ctx.arc(0, -80, 22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = col(c.accent);
+    ctx.fillRect(-30, -72, 60, 6);
+  } else if (id === 'vampiro') {
+    ctx.fillStyle = col(c.accent);
+    ctx.beginPath();
+    ctx.moveTo(-20, -94); ctx.lineTo(20, -94); ctx.lineTo(0, -118); ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ff3b30';
+    ctx.fillRect(-10, -84, 6, 4);
+    ctx.fillRect(4, -84, 6, 4);
+  } else if (id === 'capoeira') {
+    ctx.fillStyle = col(c.accent);
+    ctx.fillRect(-20, -98, 40, 6);
+    ctx.fillStyle = col(c.skin);
+    ctx.fillRect(-16, -66, 32, 26);
+    ctx.fillStyle = col(c.accent);
+    ctx.beginPath(); ctx.ellipse(0, -68, 20, 3, 0.25, 0, Math.PI * 2); ctx.fill();
+  } else if (id === 'mittens' || id === 'salem') {
+    ctx.fillStyle = col(c.hair);
+    ctx.beginPath();
+    ctx.moveTo(-14, -94); ctx.lineTo(-10, -112); ctx.lineTo(-4, -94); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(14, -94); ctx.lineTo(10, -112); ctx.lineTo(4, -94); ctx.fill();
+    ctx.fillStyle = id === 'mittens' ? '#fff' : '#c46bff';
+    ctx.fillRect(-8, -92, 16, 6);
+    ctx.fillStyle = id === 'mittens' ? '#ffd23f' : '#ffe45c';
+    ctx.fillRect(-11, -84, 6, 5);
+    ctx.fillRect(5, -84, 6, 5);
+  } else if (id === 'cavaleiro') {
+    ctx.fillStyle = col(c.accent);
+    ctx.fillRect(-4, -114, 8, 20);
+    ctx.fillStyle = '#5dd9e6';
+    ctx.fillRect(-14, -84, 28, 5);
+  } else if (id === 'robo') {
+    ctx.fillStyle = '#5dd9e6';
+    ctx.fillRect(-14, -84, 28, 5);
+    ctx.fillStyle = '#2a2e35';
+    ctx.fillRect(-16, -96, 32, 10);
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath(); ctx.arc(0, -110, 4, 0, Math.PI * 2); ctx.fill();
+  } else if (id === 'taty') {
+    ctx.fillStyle = col(c.hair);
+    ctx.fillRect(-20, -96, 40, 6);
+    ctx.fillRect(-24, -92, 10, 24);
+    ctx.fillRect(14, -92, 10, 24);
+  } else {
+    // zumbi
+    ctx.fillStyle = '#e8c84a';
+    ctx.fillRect(-10, -84, 5, 4);
+    ctx.fillRect(5, -84, 5, 4);
+    ctx.fillStyle = '#2f3d2a';
+    ctx.fillRect(-8, -94, 6, 6);
+    ctx.fillRect(2, -97, 7, 7);
+  }
+
+  // olhos
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-10, -82, 4, 4);
+  ctx.fillRect(6, -82, 4, 4);
+
+  ctx.restore();
+}
+
+function makeMiniCanvas(c) {
+  const cv = document.createElement('canvas');
+  cv.width = 100; cv.height = 100;
+  cv.className = 'charMini';
+  const ctx = cv.getContext('2d');
+  drawCharMini(ctx, c, 100);
+  return cv;
+}
 
 const PATENTES = [
   { id:'bronze',   nome:'Bronze',   cor:'#cd7f32', minMs:0      },
@@ -1802,6 +2003,7 @@ const shopGrid = document.getElementById('shopGrid');
 const shopInfo = document.getElementById('shopInfo');
 const shopAct = document.getElementById('shopAct');
 const shopBank = document.getElementById('shopBank');
+const shopPreviewName = document.getElementById('shopPreviewName');
 const cfgMusic = document.getElementById('cfgMusic');
 const cfgSfx = document.getElementById('cfgSfx');
 const cfgVib = document.getElementById('cfgVib');
@@ -1827,7 +2029,7 @@ function closeModal(id){
   const m=document.getElementById(id);
   if(id==='modalName' && m && m.classList.contains('locked')) return;
   if(m) m.classList.remove('open');
-  if(id==='modalShop') applyCharacter(charId);
+  if(id==='modalShop'){ applyCharacter(charId); updateShopPreview(); }
 }
 function closeAllModals(){
   document.querySelectorAll('.modal.open').forEach(m=>{
@@ -1846,7 +2048,7 @@ document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click', e=>{
 
 document.getElementById('openShop').onclick = ()=>{
   if(!checkLoginState()){ alert('Você precisa entrar na sua conta para acessar a loja.'); return; }
-  shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui();
+  shopSel = charId; renderShop(); updateShopPreview(); openModal('modalShop'); SFX.ui();
 };
 document.getElementById('openCfg').onclick = ()=>{ syncCfgUI(); openModal('modalCfg'); SFX.ui(); };
 document.getElementById('openRank').onclick = ()=>{ openModal('modalRank'); openRanking(); SFX.ui(); };
@@ -1909,7 +2111,7 @@ async function pullProfileFromAccount(user){
     setTimeout(()=>msg.remove(), 3200);
 
     updateBankRow(); updateHUD(); updateAccountUI();
-    if(document.getElementById('modalShop').classList.contains('open')) renderShop();
+    if(document.getElementById('modalShop').classList.contains('open')) { renderShop(); updateShopPreview(); }
 
     maybeRequireName(remote);
 
@@ -2178,12 +2380,26 @@ async function openRanking(){
 // LOJA
 // ======================================================
 let shopSel = charId;
+let previewCharId = null; // personagem que está girando no palco
+
+function updateShopPreview(){
+  const c = CHARS.find(x=>x.id===shopSel) || CHARS[0];
+  shopPreviewName.textContent = c.name;
+  const prev = document.getElementById('shopPreview');
+  prev.style.setProperty('--prev-accent', hex6(c.accent));
+  // ativa o personagem no palco 3D (o mesmo modelo do jogador)
+  if (curChar.id !== c.id) {
+    applyCharacter(c.id);
+  }
+  previewCharId = c.id;
+}
+
 function buyChar(id){
   const c = CHARS.find(x=>x.id===id);
   if(!c || isOwned(id) || bank < c.price) return;
   bank -= c.price; owned.push(id);
   saveOwned(); saveBank(); equipChar(id);
-  SFX.buy(); renderShop(); schedulePush();
+  SFX.buy(); renderShop(); updateShopPreview(); schedulePush();
 }
 function renderShop(){
   shopGrid.innerHTML = '';
@@ -2192,15 +2408,24 @@ function renderShop(){
     const b = document.createElement('button'); b.type='button';
     b.className = 'card' + (c.id===shopSel?' sel':'') + (own?'':' locked') + (c.id===charId?' eq':'');
     const tag = c.id===charId ? 'EM USO' : own ? 'SEU' : String(c.price);
-    b.innerHTML = `${swatch(c)}<span>${c.name}</span><span class="pr">${tag}</span>`;
-    b.addEventListener('click', ()=>{ shopSel = c.id; applyCharacter(c.id); SFX.ui(); renderShop(); });
+    // miniatura 2D
+    const mini = makeMiniCanvas(c);
+    b.appendChild(mini);
+    const nameEl = document.createElement('span');
+    nameEl.textContent = c.name;
+    b.appendChild(nameEl);
+    const priceEl = document.createElement('span');
+    priceEl.className = 'pr';
+    priceEl.textContent = tag;
+    b.appendChild(priceEl);
+    b.addEventListener('click', ()=>{ shopSel = c.id; SFX.ui(); renderShop(); updateShopPreview(); });
     shopGrid.appendChild(b);
   }
   shopBank.textContent = bank;
   const c = CHARS.find(x=>x.id===shopSel) || CHARS[0]; const own = isOwned(c.id);
   shopAct.disabled = false;
   if(c.id===charId){ shopInfo.textContent = c.name + ' · equipado'; shopAct.textContent = 'EQUIPADO'; shopAct.disabled = true; shopAct.onclick = null; }
-  else if(own){ shopInfo.textContent = c.name; shopAct.textContent = 'EQUIPAR'; shopAct.onclick = ()=>{ equipChar(c.id); SFX.equip(); renderShop(); }; }
+  else if(own){ shopInfo.textContent = c.name; shopAct.textContent = 'EQUIPAR'; shopAct.onclick = ()=>{ equipChar(c.id); SFX.equip(); renderShop(); updateShopPreview(); }; }
   else { const falta = c.price - bank; shopInfo.textContent = falta>0 ? 'Faltam '+falta+' moedas' : c.name; shopAct.textContent = 'COMPRAR · '+c.price; shopAct.disabled = falta>0; shopAct.onclick = ()=>buyChar(c.id); }
 }
 
