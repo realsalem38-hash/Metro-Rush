@@ -1438,7 +1438,6 @@ const rampDetailGeo = (()=>{ const L1 = Math.hypot(RAMP_LEN,TH); const p=[]; con
 function makeRampMesh(){ const m = new THREE.Mesh(rampGeo, M.ramp); m.add(new THREE.Mesh(rampDetailGeo, vcMat)); return m; }
 const coinGeo = new THREE.CylinderGeometry(0.34,0.34,0.09,14).rotateX(Math.PI/2);
 
-// Geometrias dos Power-ups
 const magnetGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
 const magnetMat = new THREE.MeshLambertMaterial({color: 0xff3b30, emissive: 0x550000});
 const doubleGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
@@ -1553,7 +1552,6 @@ function trySpawnPattern(z0){
   const ls = shuffled([-1,0,1]); const r = Math.random(); const before = obstacles.length;
   const finish = (l)=>({len:l, list: obstacles.slice(before)});
   
-  // Chance de spawnar Power-up
   if(Math.random() < 0.25) {
     const puType = Math.random() < 0.5 ? 'magnet' : 'double';
     addPowerup(puType, ls[0]*LW, z0-4, 1.2);
@@ -1994,7 +1992,6 @@ function updateHUD(){
   const s = Math.floor(runTimeMs/10); if(s!==lastScore){ scoreDisplayEl.textContent = s; lastScore=s; }
   const danger = stumbleTimer>0 && !dead; if(danger!==lastDanger){ timerBox.classList.toggle('danger', danger); lastDanger=danger; }
 
-  // Atualiza HUD dos Powerups ativos
   const magBadge = document.getElementById('puMagnet');
   const magTxt = document.getElementById('puMagnetTimer');
   if(magnetTime > 0) {
@@ -2660,7 +2657,6 @@ function update(dt){
   stumbleTimer = Math.max(0, stumbleTimer-dt);
   stumbleGrace = Math.max(0, stumbleGrace-dt);
 
-  // Atualiza temporizadores dos Power-ups
   if(magnetTime > 0) magnetTime = Math.max(0, magnetTime - dt);
   if(doubleTime > 0) doubleTime = Math.max(0, doubleTime - dt);
 
@@ -2710,7 +2706,6 @@ function update(dt){
   coinSpin += dt*4;
   const cy = player.position.y + 0.9;
 
-  // Lógica do Imã (Atrai moedas num raio de 5 unidades)
   if(magnetTime > 0) {
     for(const c of coins) {
       const dist = Math.hypot(c.x - px, c.z - pz);
@@ -2734,7 +2729,6 @@ function update(dt){
     if(c.z > pz+14){ scene.remove(c.m); coins.splice(i,1); }
   }
 
-  // Checar colisão com Power-ups
   for(let i=powerups.length-1;i>=0;i--){
     const p = powerups[i];
     p.m.rotation.y += dt * 3;
@@ -2770,6 +2764,7 @@ function update(dt){
   updateHUD();
 }
 
+// CORREÇÃO DA CÂMERA: Garantindo o acompanhamento suave e contínuo do player
 function updateCamera(dt){
   const px = player.position.x, py = player.position.y, pz = player.position.z;
   camX += (px*0.6 - camX)*Math.min(1,dt*6);
@@ -2781,8 +2776,11 @@ function updateCamera(dt){
   const targetFov = baseFov + fovK*11 + ((live && !onGround) ? 1.5 : 0);
   curFov += (targetFov-curFov)*Math.min(1,dt*4);
   if(Math.abs(camera.fov - curFov) > 0.02){ camera.fov = curFov; camera.updateProjectionMatrix(); }
-  camera.position.set(camX+sxk, camY+syk, pz+camBack+fovK*1.5);
-  camera.lookAt(px*0.35, 1.4 + py*0.4, pz-12);
+  
+  // Posicionamento correto atrelado diretamente ao pz (posição Z do player)
+  camera.position.set(camX+sxk, camY+syk, pz + camBack + fovK*1.5);
+  camera.lookAt(px*0.35, 1.4 + py*0.4, pz - 12);
+
   sun.position.set(px-8, 20, pz+12);
   sun.target.position.set(px, 0, pz);
   sun.target.updateMatrixWorld();
