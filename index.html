@@ -53,11 +53,13 @@
   --hud-font:   clamp(12px, 3.6vw, 17px);
   --hud-label:  clamp(8px,  2.4vw, 10px);
   --hud-val:    clamp(14px, 4.2vw, 18px);
-  --card-pad:   clamp(14px, 4.5vw, 26px);
-  --card-gap:   clamp(9px,  2.6vw, 15px);
-  --card-max:   clamp(280px, 92vw, 380px);
+  
+  /* LOJA MAIS COMPACTA */
+  --card-pad:   clamp(10px, 3.5vw, 18px);
+  --card-gap:   clamp(6px,  2vw, 10px);
+  --card-max:   clamp(300px, 92vw, 360px);
   --card-radius:clamp(14px, 4.4vw, 22px);
-  --btn-pad:    clamp(11px, 3.4vw, 16px);
+  --btn-pad:    clamp(10px, 3vw, 14px);
   --btn-font:   clamp(12px, 3.6vw, 16px);
   --title-font: clamp(19px, 6.4vw, 30px);
   --big-font:   clamp(30px, 10vw,  46px);
@@ -65,12 +67,13 @@
   --ttl-font:   clamp(11px, 3.2vw, 14px);
   --stat-font:  clamp(11px, 3.2vw, 14px);
   --stat-lbl:   clamp(8px,  2.4vw, 10px);
-  --card-h:     clamp(70px, 22vw, 96px);
+  
+  --card-h:     clamp(58px, 16vw, 76px); /* Cards mais baixos */
   --card-sw:    clamp(24px, 8.4vw, 34px);
   --input-pad:  clamp(10px, 3.2vw, 14px);
   --input-font: clamp(13px, 3.8vw, 16px);
   --close-size: clamp(28px, 9vw,   38px);
-  --preview-h:  clamp(120px, 34vw, 170px);
+  --preview-h:  clamp(90px, 24vw, 120px); /* Palco de prévia menor */
 }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -202,60 +205,65 @@ button { font-family:inherit; }
 #modalName.locked .close-x { display: none; }
 #modalName.locked { pointer-events: auto; }
 
-/* ===== PREVIEW DE PERSONAGEM NO PALCO DA LOJA ===== */
+/* ===== PREVIEW DE PERSONAGEM NA LOJA ===== */
 #shopPreview {
   position:relative; width:100%; height:var(--preview-h);
-  border-radius:14px; overflow:hidden;
+  border-radius:12px; overflow:hidden;
   background:
     radial-gradient(circle at 50% 42%, rgba(255,255,255,.16) 0%, rgba(255,255,255,.04) 34%, rgba(0,0,0,0) 62%),
     linear-gradient(180deg, rgba(40,60,100,.55) 0%, rgba(10,18,34,.85) 100%);
   border:1px solid var(--line);
   display:flex; align-items:flex-end; justify-content:center;
   box-shadow: inset 0 -20px 40px rgba(0,0,0,.35);
+  margin-bottom: 4px;
 }
 #shopPreview::before {
   content:"";
-  position:absolute; left:50%; bottom:14%;
-  width:56%; height:16%;
+  position:absolute; left:50%; bottom:12%;
+  width:50%; height:14%;
   transform:translateX(-50%);
   border-radius:50%;
   background:radial-gradient(ellipse at center, var(--prev-accent, #ffd42a) 0%, rgba(0,0,0,0) 70%);
-  opacity:.35; filter:blur(6px);
+  opacity:.35; filter:blur(4px);
   pointer-events:none;
   transition: background .2s;
 }
 #shopPreviewName {
-  position:absolute; top:10px; left:50%; transform:translateX(-50%);
-  font-size:var(--stat-font); font-weight:900; letter-spacing:2px; text-transform:uppercase;
+  position:absolute; top:8px; left:50%; transform:translateX(-50%);
+  font-size:var(--stat-font); font-weight:900; letter-spacing:1.5px; text-transform:uppercase;
   color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);
   white-space:nowrap; max-width:92%; overflow:hidden; text-overflow:ellipsis;
   pointer-events:none;
 }
 #shopPreviewTag {
-  position:absolute; top:32px; left:50%; transform:translateX(-50%);
-  font-size:var(--stat-lbl); font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
+  position:absolute; top:26px; left:50%; transform:translateX(-50%);
+  font-size:calc(var(--stat-lbl) - 1px); font-weight:800; letter-spacing:1px; text-transform:uppercase;
   color:rgba(255,255,255,.55);
   pointer-events:none;
 }
 
-.bank { align-self:center; font-size:var(--stat-font); font-weight:700; color:var(--muted); padding:5px 12px; border-radius:999px; background:rgba(255,212,42,.08); }
+.bank { align-self:center; font-size:var(--stat-font); font-weight:700; color:var(--muted); padding:4px 12px; border-radius:999px; background:rgba(255,212,42,.08); }
 .bank b { color:var(--accent); font-size:calc(var(--stat-font) + 1px); margin-left:4px; font-variant-numeric:tabular-nums; }
+
+/* Grid da Loja Compacta */
 #shopGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%; }
 .card {
-  border:1.5px solid var(--line); border-radius:12px; background:rgba(255,255,255,.04); color:rgba(255,255,255,.88);
-  padding:6px 3px 8px; font-size:var(--stat-lbl); font-weight:700; cursor:pointer; transition:all .15s ease;
-  display:flex; flex-direction:column; align-items:center; gap:3px; min-height:var(--card-h); justify-content:center;
-  min-width:0; overflow:hidden;
+  border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.04); color:rgba(255,255,255,.88);
+  padding:4px 2px 6px; font-size:var(--stat-lbl); font-weight:700; cursor:pointer; transition:all .15s ease;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:var(--card-h); min-width:0; overflow:hidden;
 }
-.card .pr { font-size:var(--stat-lbl); font-weight:800; letter-spacing:.4px; color:var(--muted); margin-top:2px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.card .pr { font-size:var(--stat-lbl); font-weight:800; letter-spacing:.2px; color:var(--muted); margin-top:1px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 .card.locked { opacity:.7; }
 .card.locked .pr { color:var(--accent); }
 .card.eq .pr { color:var(--ok); }
 .card.sel { border-color:var(--accent); background:rgba(255,212,42,.12); color:var(--accent); opacity:1; }
-.card span:not(.pr) { font-size:var(--stat-lbl); text-align:center; line-height:1.15; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-.card canvas.charMini { width:100%; aspect-ratio:1/1; max-height:44px; display:block; }
+.card span:not(.pr) { font-size:var(--stat-lbl); text-align:center; line-height:1.1; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+
+/* Miniatura corrigida */
+.card canvas.charMini { width:34px; height:34px; display:block; margin-bottom:2px; pointer-events:none; }
+
 .sw { display:inline-block; width:14px; height:14px; border-radius:50%; border:1px solid rgba(255,255,255,.28); flex:none; }
-.card .sw { width:var(--card-sw); height:var(--card-sw); border-radius:8px; margin-bottom:2px; }
 #shopInfo { font-size:var(--stat-font); font-weight:700; color:var(--muted); text-align:center; min-height:16px; }
 
 .cfg-row { display:flex; justify-content:space-between; align-items:center; width:100%; gap:8px; color:#fff; font-size:var(--stat-font); font-weight:600; padding:8px 0; border-bottom:1px solid var(--line); }
@@ -286,29 +294,12 @@ input::placeholder { color:rgba(255,255,255,.4); }
 .rk-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
 .rk-pat { font-size:var(--stat-lbl); font-weight:800; letter-spacing:.8px; text-transform:uppercase; flex:none; }
 .rk-time { font-variant-numeric:tabular-nums; color:var(--accent); font-size:var(--stat-lbl); font-weight:800; flex:none; }
-.rk-row .sw { width:12px; height:12px; }
 
 #hint { position:absolute; bottom:calc(16px + env(safe-area-inset-bottom)); width:100%; text-align:center; color:#fff; font-size:var(--stat-font); font-weight:700; letter-spacing:1px; text-shadow:0 2px 6px black; pointer-events:none; transition:opacity 1s; z-index:3; opacity:0; padding:0 12px; }
 #flash { position:absolute; inset:0; background:#f22; opacity:0; pointer-events:none; z-index:2; transition:opacity .35s; }
 #countdown { position:absolute; top:28%; left:0; right:0; text-align:center; font-size:clamp(60px, 24vw, 104px); font-weight:900; color:#fff; text-shadow:0 6px 24px rgba(0,0,0,.55); letter-spacing:2px; pointer-events:none; display:none; z-index:7; }
 #countdown.pop { animation:pop .75s ease-out forwards; }
 @keyframes pop { 0% { transform:scale(.4); opacity:0; } 25% { transform:scale(1.15); opacity:1; } 70% { transform:scale(1); opacity:1; } 100% { transform:scale(1.25); opacity:0; } }
-
-@media (max-width: 320px) {
-  :root {
-    --card-max: 96vw;
-    --card-pad: 12px;
-    --card-gap: 8px;
-    --title-font: 18px;
-    --big-font: 28px;
-    --btn-font: 12px;
-    --btn-pad: 10px;
-    --hud-font: 11px;
-    --hud-btn: 32px;
-  }
-  .main-grid { gap: 5px; }
-  #shopGrid { gap: 4px; }
-}
 </style>
 </head>
 <body>
@@ -345,7 +336,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
   </div>
 
   <div class="modal" id="modalShop">
-    <div class="menu-card">
+    <div class="menu-card" style="max-height: 90vh; padding-bottom: 10px;">
       <button class="close-x" data-close="modalShop" aria-label="Fechar">&times;</button>
       <h1 class="ttl">Loja</h1>
       <div id="shopPreview">
@@ -657,20 +648,16 @@ const hex6 = n => '#' + n.toString(16).padStart(6,'0');
 function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
 
 // ======================================================
-// MINIATURA 2D DO PERSONAGEM (para os cards da loja)
+// MINIATURA 2D DO PERSONAGEM (CORRIGIDA E COMPLETA)
 // ======================================================
 function drawCharMini(ctx, c, size) {
   const s = size / 100;
   ctx.clearRect(0, 0, size, size);
   ctx.save();
-  ctx.translate(size / 2, size * 0.9);
-  ctx.scale(s * 1.15, s * 1.15);
+  ctx.translate(size / 2, size * 0.85); 
+  ctx.scale(s * 1.25, s * 1.25);
 
   const col = n => hex6(n);
-  const dark = (hex, f) => {
-    const r = (hex >> 16) & 255, g = (hex >> 8) & 255, b = hex & 255;
-    return `rgb(${Math.floor(r*f)},${Math.floor(g*f)},${Math.floor(b*f)})`;
-  };
 
   // pernas
   ctx.fillStyle = col(c.legs);
@@ -694,11 +681,13 @@ function drawCharMini(ctx, c, size) {
   ctx.fillStyle = col(c.skin);
   ctx.fillRect(-34, -38, 10, 8);
   ctx.fillRect(24, -38, 10, 8);
+  
   // cabeça
   ctx.fillStyle = col(c.skin);
   ctx.beginPath();
   ctx.arc(0, -80, 18, 0, Math.PI * 2);
   ctx.fill();
+  
   // cabelo base
   ctx.fillStyle = col(c.hair);
   ctx.beginPath();
