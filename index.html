@@ -114,31 +114,6 @@ button { font-family:inherit; }
 }
 .timer-box.danger { background:rgba(180,20,20,.75); animation:pulseDanger .5s infinite alternate; }
 @keyframes pulseDanger { from { color:#fff; } to { color:#ffcaca; } }
-
-#powerupHud {
-  position: absolute;
-  top: calc(var(--hud-btn) + var(--hud-pad) + env(safe-area-inset-top) + 6px);
-  left: calc(var(--hud-pad) + env(safe-area-inset-left));
-  display: flex;
-  gap: 6px;
-  z-index: 3;
-  pointer-events: none;
-}
-.pu-badge {
-  background: rgba(0,0,0,0.6);
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  padding: 4px 8px;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  display: none;
-  align-items: center;
-  gap: 4px;
-  font-variant-numeric: tabular-nums;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-
 .hud-right {
   display:flex; flex-direction:column; gap:2px; min-width:0;
   background:rgba(0,0,0,.45); border:1px solid var(--line); border-radius:12px;
@@ -321,11 +296,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
   </div>
 </div>
 
-<div id="powerupHud">
-  <div id="puMagnet" class="pu-badge">🧲 Imã: <span id="puMagnetTimer">10.0</span>s</div>
-  <div id="puDouble" class="pu-badge">⭐ 2x: <span id="puDoubleTimer">10.0</span>s</div>
-</div>
-
 <div id="menu">
   <div class="menu-card" id="mainCard">
     <h1 id="mTitle">METRO RUSH</h1>
@@ -336,9 +306,8 @@ input::placeholder { color:rgba(255,255,255,.4); }
     <div class="main-grid">
       <button class="main-btn" id="openShop">Loja</button>
       <button class="main-btn" id="openRank">Ranking</button>
-      <button class="main-btn" id="openQuests">Missões</button>
       <button class="main-btn" id="openCfg">Ajustes</button>
-      <button class="main-btn" id="openAcc" style="grid-column: span 2">Conta</button>
+      <button class="main-btn" id="openAcc">Conta</button>
     </div>
     <div id="bankRow"></div>
     <button class="ghost" id="menuBtn" style="display:none">Menu principal</button>
@@ -352,15 +321,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
       <div id="shopGrid"></div>
       <div id="shopInfo"></div>
       <button class="primary" id="shopAct">EQUIPAR</button>
-    </div>
-  </div>
-
-  <div class="modal" id="modalQuests">
-    <div class="menu-card">
-      <button class="close-x" data-close="modalQuests" aria-label="Fechar">&times;</button>
-      <h1 class="ttl">Missões Diárias</h1>
-      <div id="questList" class="rank-list" style="max-height:40vh; display:flex; flex-direction:column; gap:8px; padding:10px; background:transparent; border:0;"></div>
-      <p class="note">Volte todo dia para novos desafios e recompensas!</p>
     </div>
   </div>
 
@@ -433,7 +393,7 @@ input::placeholder { color:rgba(255,255,255,.4); }
 <script type="module">
 import * as THREE from 'three';
 
-(async function() {
+(async function() { // <--- INÍCIO DO ESCOPO FECHADO
 
 if (location.protocol === 'file:') {
   document.body.innerHTML = '<div style="position:fixed;inset:0;background:#111;color:#fff;padding:20px;font-family:monospace;z-index:9999;display:flex;align-items:center;justify-content:center;text-align:center;font-size:15px;line-height:1.7"><div><b>Precisa ser servido via HTTP.</b><br><br>Rode na pasta do arquivo:<br><br><code style="background:#222;padding:8px 14px;border-radius:6px;color:#ffd42a;display:inline-block;margin:4px 0">python -m http.server 8000</code><br><br>Acesse <code style="color:#ffd42a">http://localhost:8000</code></div></div>';
@@ -465,6 +425,7 @@ function secureLoad(k, fallback) {
     const chk = localStorage.getItem(k + '_chk');
     if (valStr === null || chk === null) return fallback;
     if (generateHash(valStr + SECRET_SALT) !== chk) {
+      console.warn('[AntiCheat] Adulteração detectada em:', k);
       localStorage.removeItem(k);
       localStorage.removeItem(k + '_chk');
       return fallback;
@@ -473,6 +434,7 @@ function secureLoad(k, fallback) {
   } catch(e) { return fallback; }
 }
 
+// [NOME ÚNICO] Normalização idêntica à usada nas regras do Firestore
 function normalizeName(s) {
   return String(s)
     .toLowerCase()
@@ -519,7 +481,7 @@ try {
       try {
         const safeBank = Math.min(Math.max(0, Number(data.bank) || 0), 100000);
         const safeRecord = Math.min(Math.max(0, Number(data.recordMs) || 0), 3600000);
-        const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 10) : [];
+        const safeOwned = Array.isArray(data.owned) ? data.owned.slice(0, 20) : [];
         const ref = firestore.doc(db, 'users', auth.currentUser.uid);
         let existingName = '';
         try {
@@ -549,6 +511,7 @@ try {
       } catch(e) { console.error('[Firebase] loadProfile:', e); return null; }
     },
 
+    // [NOME ÚNICO] Verifica se o nome está disponível globalmente
     isNameAvailable: async (name) => {
       if (!auth.currentUser) return false;
       try {
@@ -560,6 +523,7 @@ try {
       } catch (e) { console.error('[Firebase] isNameAvailable:', e); return false; }
     },
 
+    // [NOME ÚNICO] Reserva o nome globalmente - TRAVA TOTAL
     reserveName: async (name) => {
       if (!auth.currentUser) return { ok: false, reason: 'not_logged' };
       try {
@@ -573,6 +537,7 @@ try {
         const userRef = firestore.doc(db, 'users', auth.currentUser.uid);
         const scoreRef = firestore.doc(db, 'scores', auth.currentUser.uid);
 
+        // 1) Verifica se o nome já está em uso por OUTRA pessoa
         const nameSnap = await firestore.getDoc(nameRef);
         if (nameSnap.exists()) {
           const owner = nameSnap.data().ownerUid;
@@ -581,6 +546,7 @@ try {
           }
         }
 
+        // 2) Verifica se o usuário atual já não tem um nome salvo (imutável)
         const userSnap = await firestore.getDoc(userRef);
         if (userSnap.exists()) {
           const existing = String(userSnap.data().playerName || '').trim();
@@ -592,6 +558,7 @@ try {
           }
         }
 
+        // 3) Cria a reserva na coleção 'usernames'
         await firestore.setDoc(nameRef, {
           ownerUid: auth.currentUser.uid,
           nameKey: nameKey,
@@ -599,6 +566,7 @@ try {
           createdAt: firestore.serverTimestamp()
         });
 
+        // 4) Salva no perfil do usuário
         const userPayload = {
           playerName: raw,
           email: auth.currentUser.email,
@@ -618,6 +586,7 @@ try {
           });
         }
 
+        // 5) Atualiza o ranking
         const scoreSnap = await firestore.getDoc(scoreRef);
         if (scoreSnap.exists()) {
           await firestore.setDoc(scoreRef, { name: raw }, { merge: true });
@@ -700,16 +669,19 @@ function fmtTime(ms) {
 }
 
 const CHARS = [
-  { id:'zumbi',    name:'Zumbi',       price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
-  { id:'robo',     name:'Robô',        price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
-  { id:'ninja',    name:'Ninja',       price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
-  { id:'samurai',  name:'Samurai',     price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
-  { id:'pirata',   name:'Pirata',      price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
-  { id:'rei',      name:'Rei',         price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
-  { id:'astro',    name:'Astronauta',  price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
-  { id:'capoeira', name:'Capoeirista', price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
-  { id:'mittens',  name:'Mittens',     price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
-  { id:'salem',    name:'Salém',       price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false }
+  { id:'zumbi',     name:'Zumbi',         price:0,    torso:0x6a7fa3, belt:0x3b3228, legs:0x5a4d3c, skin:0x86b86b, shoe:0x2b2b2b, hair:0x2f3d2a, accent:0x6b1f1f, armsFwd:true  },
+  { id:'robo',      name:'Robô',          price:150,  torso:0x9aa6b5, belt:0x2f3640, legs:0x5d6b7a, skin:0xc3ccd6, shoe:0x2f3640, hair:0x2f3640, accent:0x2196f3, armsFwd:false },
+  { id:'ninja',     name:'Ninja',         price:250,  torso:0x1c2230, belt:0xd32f2f, legs:0x1c2230, skin:0xe8b48a, shoe:0x111111, hair:0x14161c, accent:0xd32f2f, armsFwd:false },
+  { id:'samurai',   name:'Samurai',       price:300,  torso:0x1f2b5e, belt:0xd32f2f, legs:0x232830, skin:0xe8b48a, shoe:0xeeeeee, hair:0x111111, accent:0xd32f2f, armsFwd:false },
+  { id:'pirata',    name:'Pirata',        price:350,  torso:0xefe6d2, belt:0xffc83a, legs:0x3a2a1c, skin:0xe3a97c, shoe:0x1f140c, hair:0x2a1a10, accent:0xb71c1c, armsFwd:false },
+  { id:'rei',       name:'Rei',           price:400,  torso:0xb71c1c, belt:0xffc83a, legs:0x5b2a86, skin:0xf2b98a, shoe:0x3b2418, hair:0x5a3a1e, accent:0xc62828, armsFwd:false },
+  { id:'astro',     name:'Astronauta',    price:500,  torso:0xe9edf3, belt:0xff7a1a, legs:0xdfe3ea, skin:0xf2b98a, shoe:0x6b7380, hair:0x3b2418, accent:0xff7a1a, armsFwd:false },
+  { id:'vampiro',   name:'Vampiro',       price:1000, torso:0x1e1e24, belt:0x8b1e2d, legs:0x1e1e24, skin:0xe9ddd5, shoe:0x111111, hair:0x16161b, accent:0x8b1e2d, armsFwd:false },
+  { id:'capoeira',  name:'Capoeirista',   price:1500, torso:0xf5f0e6, belt:0x2a6fdb, legs:0xf5f0e6, skin:0x8a5a2f, shoe:0xf5f0e6, hair:0x2a1a10, accent:0x2a6fdb, armsFwd:false },
+  { id:'taty',      name:'Taty',          price:2500, torso:0xc83a3a, belt:0x2b3440, legs:0x2b3440, skin:0xd9a47e, shoe:0x222222, hair:0x2a1d1a, accent:0xc83a3a, armsFwd:false },
+  { id:'mittens',   name:'Mittens',       price:3500, torso:0xff8c1a, belt:0xff8c1a, legs:0xff8c1a, skin:0xff8c1a, shoe:0xe07010, hair:0xff8c1a, accent:0xffd42a, armsFwd:false },
+  { id:'salem',     name:'Salém',         price:5000, torso:0x141414, belt:0x0a0a0a, legs:0x141414, skin:0x141414, shoe:0x000000, hair:0x000000, accent:0x6f2bbf, armsFwd:false },
+  { id:'cavaleiro', name:'Cav. Fantasma', price:7500, torso:0x8fa6bd, belt:0x5dd9e6, legs:0x6f86a0, skin:0xa9bcd0, shoe:0x3a4a5c, hair:0xa9bcd0, accent:0x5dd9e6, armsFwd:false }
 ];
 const hex6 = n => '#' + n.toString(16).padStart(6,'0');
 function swatch(c){ return `<i class="sw" style="background:linear-gradient(135deg,${hex6(c.torso)} 50%,${hex6(c.accent)} 50%)"></i>`; }
@@ -821,6 +793,7 @@ let camBack=10, camHeight=5.4, baseFov=65, curFov=65, fovK=0;
 
 function applySize(){ renderer.setPixelRatio(pixelRatio); renderer.setSize(innerWidth,innerHeight); }
 
+// [UI RESPONSIVA] FOV adaptativo
 function fitCamera(){
   const a = innerWidth/innerHeight;
   const w = innerWidth;
@@ -1336,6 +1309,49 @@ let capeG;
   for(const p of mittensFeet) p.visible = false;
 }
 
+// ---- NOVOS PERSONAGENS: Vampiro, Cavaleiro fantasma e Taty ----
+M.ghost = L(0xa9bcd0,{emissive:0x1b2f40,transparent:true,opacity:0.85});
+{
+  const g = grp('vampiro');
+  box(g,0.62,0.14,0.62,M.hair,0,2.4,0.02);
+  box(g,0.16,0.14,0.1,M.hair,0,2.34,-0.3);
+  box(g,0.08,0.08,0.04,M.glowR,-0.12,2.15,-0.33);
+  box(g,0.08,0.08,0.04,M.glowR, 0.12,2.15,-0.33);
+  box(g,0.04,0.1,0.03,M.white,-0.06,1.98,-0.34);
+  box(g,0.04,0.1,0.03,M.white, 0.06,1.98,-0.34);
+  box(g,0.14,0.5,0.1,M.cape,-0.32,1.8,0.0);
+  box(g,0.14,0.5,0.1,M.cape, 0.32,1.8,0.0);
+  box(g,0.16,0.5,0.03,M.white,0,1.5,-0.24);
+  flap(g,0,1.85,0.26,1.1,0.9,M.cape,0,1.1);
+}
+{
+  const g = grp('cavaleiro');
+  box(g,0.78,0.78,0.76,M.ghost,0,2.1,0);
+  box(g,0.5,0.09,0.04,M.dark,0,2.12,-0.39);
+  box(g,0.1,0.07,0.04,M.glowC,-0.12,2.12,-0.41);
+  box(g,0.1,0.07,0.04,M.glowC, 0.12,2.12,-0.41);
+  box(g,0.1,0.35,0.5,M.glowC,0,2.62,0.05);
+  ball(g,0.22,M.ghost,-0.55,1.88,0);
+  ball(g,0.22,M.ghost, 0.55,1.88,0);
+  box(g,0.84,0.55,0.05,M.ghost,0,1.55,-0.25);
+  box(g,0.06,0.4,0.04,M.glowC,0,1.55,-0.29);
+  const sw = new THREE.Group(); sw.position.set(0,1.5,0.34); sw.rotation.z=-0.55; g.add(sw);
+  box(sw,0.07,1.25,0.09,M.metal,0,0,0);
+  box(sw,0.22,0.04,0.16,M.glowC,0,0.6,0);
+  flap(g,0,1.85,0.26,1.0,0.8,M.ghost,0.5,1.1);
+}
+{
+  const g = grp('taty');
+  box(g,0.78,0.2,0.74,M.hair,0,2.36,0.02);
+  box(g,0.14,0.7,0.5,M.hair,-0.38,2.0,0.1);
+  box(g,0.14,0.7,0.5,M.hair, 0.38,2.0,0.1);
+  box(g,0.7,0.8,0.14,M.hair,0,1.95,0.3);
+  box(g,0.07,0.07,0.04,M.dark,-0.11,2.15,-0.33);
+  box(g,0.07,0.07,0.04,M.dark, 0.11,2.15,-0.33);
+  box(g,0.22,0.05,0.03,M.white,0,1.99,-0.34);
+  box(g,0.12,0.9,0.03,M.dark,0.2,1.45,-0.24);
+}
+
 const blob = new THREE.Mesh(
   new THREE.CircleGeometry(0.75,16).rotateX(-Math.PI/2),
   new THREE.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.28, depthWrite:false})
@@ -1386,7 +1402,7 @@ function updateParticles(dt){
 function clearParticles(){ for(const p of P) p.life = 0; }
 
 // ======================================================
-// OBSTÁCULOS, MOEDAS E POWER-UPS
+// OBSTÁCULOS E MOEDAS
 // ======================================================
 const TRAIN_COLORS = [[0xd6dadf,0x2f78c4],[0x3f86c8,0xf2f2f2],[0xe9b82e,0x333b48],[0xc94a3f,0xf1e9d8]];
 const trainCache = {};
@@ -1438,14 +1454,7 @@ const rampDetailGeo = (()=>{ const L1 = Math.hypot(RAMP_LEN,TH); const p=[]; con
 function makeRampMesh(){ const m = new THREE.Mesh(rampGeo, M.ramp); m.add(new THREE.Mesh(rampDetailGeo, vcMat)); return m; }
 const coinGeo = new THREE.CylinderGeometry(0.34,0.34,0.09,14).rotateX(Math.PI/2);
 
-const magnetGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-const magnetMat = new THREE.MeshLambertMaterial({color: 0xff3b30, emissive: 0x550000});
-const doubleGeo = new THREE.BoxGeometry(0.6, 0.6, 0.6);
-const doubleMat = new THREE.MeshLambertMaterial({color: 0xffd42a, emissive: 0x554400});
-
-let obstacles=[]; let coins=[]; let powerups=[];
-let magnetTime = 0, doubleTime = 0;
-
+let obstacles=[]; let coins=[];
 function addObs(o){ o.prevZ = o.z - (o.vz||0)*0.016; o.group.position.set(o.x,0,o.z); scene.add(o.group); obstacles.push(o); return o; }
 function makeTrain(lane,zc,len,moving){ const mesh = new THREE.Mesh(trainGeo(len,Math.floor(Math.random()*4)), vcMat); return addObs({kind:'train', x:lane*LW, z:zc, hl:len/2, top:TH, walkable:!moving, vz:moving?MOVE_TRAIN_V:0, group:mesh}); }
 function makeLow(lane,z){ return addObs({kind:'low', x:lane*LW, z, hl:0.3, vz:0, group:new THREE.Mesh(lowGeo,vcMat)}); }
@@ -1463,15 +1472,6 @@ function coinIsSafe(x,z,y){
 }
 function addCoin(x,z,y){ if(!coinIsSafe(x,z,y)) return false; const m=new THREE.Mesh(coinGeo,M.coin); m.position.set(x,y,z); scene.add(m); coins.push({m,x,y,z}); return true; }
 function coinLine(lane,z0,n,sp,y){ const x=lane*LW; for(let i=0;i<n;i++) addCoin(x, z0-i*sp, y); }
-
-function addPowerup(type, x, z, y){
-  const geo = type === 'magnet' ? magnetGeo : doubleGeo;
-  const mat = type === 'magnet' ? magnetMat : doubleMat;
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, y, z);
-  scene.add(m);
-  powerups.push({m, type, x, y, z});
-}
 
 function patternIsPassable(z0,len,list){
   const step=0.5; const lanesX=[-LW,0,LW];
@@ -1551,12 +1551,6 @@ function movingTrainIsSafe(laneIdx, zs, hl){
 function trySpawnPattern(z0){
   const ls = shuffled([-1,0,1]); const r = Math.random(); const before = obstacles.length;
   const finish = (l)=>({len:l, list: obstacles.slice(before)});
-  
-  if(Math.random() < 0.25) {
-    const puType = Math.random() < 0.5 ? 'magnet' : 'double';
-    addPowerup(puType, ls[0]*LW, z0-4, 1.2);
-  }
-
   if(r<0.22){ const n = 1+Math.floor(Math.random()*2); for(let i=0;i<n;i++) makeLow(ls[i], z0-2); coinLine(ls[n], z0, 6, 2.2, 0.95); return finish(6); }
   if(r<0.40){ const n = Math.random()<0.4?2:1; for(let i=0;i<n;i++) makeOver(ls[i], z0-2); coinLine(ls[n], z0, 6, 2.2, 0.95); return finish(6); }
   if(r<0.62){
@@ -1614,7 +1608,7 @@ function bankRun(){
 }
 
 // ======================================================
-// ÁUDIO E SONS DINÂMICOS
+// ÁUDIO
 // ======================================================
 let actx=null, musicGain=null, noiseBuf=null;
 function applyAudioCfg(){ if(musicGain) musicGain.gain.value = cfg.music/100*0.5; }
@@ -1681,9 +1675,6 @@ const SFX = {
   buy(){ playTone({f1:700,f2:1400,dur:0.18,type:'square',vol:0.055,attack:0.004}); playTone({f1:1400,f2:2100,dur:0.16,type:'sine',vol:0.04,attack:0.003,delay:0.08}); },
   equip(){ playTone({f1:500,f2:900,dur:0.12,type:'triangle',vol:0.045}); },
   ui(){ playTone({f1:620,f2:780,dur:0.04,type:'sine',vol:0.02}); },
-  powerup(){ playTone({f1:523,f2:1046,dur:0.18,type:'square',vol:0.05,attack:0.003}); playTone({f1:659,f2:1318,dur:0.16,type:'sine',vol:0.04,attack:0.002,delay:0.06}); },
-  questComplete(){ [523, 659, 784, 1046, 1318].forEach((f,i)=>playTone({f1:f,f2:f,dur:0.15,type:'square',vol:0.05,delay:i*0.07})); },
-  footstep(){ if(!onGround) return; playNoise({f1:800,f2:200,dur:0.04,filter:'lowpass',vol:0.015,attack:0.001}); },
   countdown(i){
     const f = [660, 820, 990, 1320][i] || 1320;
     playTone({ f1:f, f2:f, dur:0.09, type:'square', vol:0.06, attack:0.003 });
@@ -1715,91 +1706,12 @@ function stopMusic(){ if(musicTimer){ clearInterval(musicTimer); musicTimer=null
 function startMusic(){ if(!actx || !musicGain || cfg.music<=0) return; stopMusic(); nextNoteT = actx.currentTime + 0.06; musicTimer = setInterval(musicTick,30); }
 
 // ======================================================
-// MISSÕES DIÁRIAS
-// ======================================================
-const QUEST_POOL = [
-  { id: 'coins_50', desc: 'Colete 50 moedas', target: 50, reward: 150, type: 'coins' },
-  { id: 'time_60', desc: 'Corra por 1 minuto', target: 60000, reward: 200, type: 'time' },
-  { id: 'jumps_30', desc: 'Dê 30 saltos', target: 30, reward: 100, type: 'jumps' },
-  { id: 'slides_15', desc: 'Faça 15 deslizes', target: 15, reward: 100, type: 'slides' }
-];
-
-function getTodayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-}
-
-function loadQuests() {
-  const today = getTodayKey();
-  let data = secureLoad('metroQuests', null);
-  if(!data || data.date !== today) {
-    const shuffledQ = shuffled(QUEST_POOL).slice(0, 3);
-    data = {
-      date: today,
-      list: shuffledQ.map(q => ({ id: q.id, current: 0, target: q.target, done: false }))
-    };
-    secureSave('metroQuests', JSON.stringify(data));
-  }
-  return data;
-}
-
-let activeQuests = loadQuests();
-
-function updateQuestProgress(type, amount = 1) {
-  let changed = false;
-  activeQuests.list.forEach(q => {
-    if(q.done) return;
-    const def = QUEST_POOL.find(x => x.id === q.id);
-    if(def && def.type === type) {
-      q.current = Math.min(q.target, q.current + amount);
-      if(q.current >= q.target) {
-        q.done = true;
-        bank += def.reward;
-        saveBank();
-        SFX.questComplete();
-        changed = true;
-      }
-    }
-  });
-  if(changed) {
-    secureSave('metroQuests', JSON.stringify(activeQuests));
-    schedulePush();
-  }
-}
-
-function renderQuests(){
-  const listEl = document.getElementById('questList');
-  activeQuests = loadQuests();
-  listEl.innerHTML = activeQuests.list.map(q=>{
-    const def = QUEST_POOL.find(x=>x.id===q.id);
-    const pct = Math.floor((q.current/q.target)*100);
-    return `<div style="background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px">
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;color:#fff">
-        <span>${def.desc}</span>
-        <span style="color:${q.done?'var(--ok)':'var(--accent)'}">${q.done ? 'COMPLETO ✓' : `+${def.reward} moedas`}</span>
-      </div>
-      <div style="font-size:11px;color:var(--muted)">Progresso: ${q.current} / ${q.target}</div>
-      <div class="pb-bar"><span style="width:${pct}%"></span></div>
-    </div>`;
-  }).join('');
-}
-
-// ======================================================
 // INPUT
 // ======================================================
 function canAct(){ return running && !paused && !dead && !counting; }
 function moveLane(d){ if(!canAct()) return; const n = clamp(lane+d,-1,1); if(n!==lane){ prevLane=lane; lane=n; SFX.lane(); } }
-function doJump(){
-  if(!canAct()) return;
-  if(!onGround) return;
-  sliding=false; onGround=false; vy=JUMP_V; SFX.jump();
-  updateQuestProgress('jumps', 1);
-  burst(player.position.x, player.position.y+0.1, player.position.z, 6, 1.6, 1.0, 0.4, 0.16, DUST, 3);
-}
-function startSlide(){
-  sliding = true; slideT = SLIDE_T;
-  updateQuestProgress('slides', 1);
-}
+function doJump(){ if(!canAct()) return; if(!onGround) return; sliding=false; onGround=false; vy=JUMP_V; SFX.jump(); burst(player.position.x, player.position.y+0.1, player.position.z, 6, 1.6, 1.0, 0.4, 0.16, DUST, 3); }
+function startSlide(){ sliding = true; slideT = SLIDE_T; }
 function doSlide(){ if(!canAct()) return; if(!onGround){ vy = -24; wantRoll = true; return; } if(!sliding){ startSlide(); SFX.slide(); } }
 
 const SWIPE = 26; let tracking = false; let sx=0, sy=0; let swipeCooldown = 0;
@@ -1833,11 +1745,28 @@ cv.addEventListener('pointerup', endTrack);
 cv.addEventListener('pointercancel', ()=>{ tracking=false; });
 cv.addEventListener('contextmenu', e=>e.preventDefault());
 
+function groundAt(x,z,y){
+  let g = 0;
+  for(const o of obstacles){
+    if(o.kind!=='train' && o.kind!=='ramp') continue;
+    if(Math.abs(x-o.x)>1.0) continue;
+    if(Math.abs(z-o.z)>o.hl) continue;
+    if(o.kind==='ramp'){
+      const t = clamp(((o.z+o.hl)-z)/(2*o.hl),0,1);
+      const h = o.top*t;
+      if(y >= h - 1.2 && h > g) g = h;
+    } else if(o.walkable){
+      if(y >= o.top - 0.15 && o.top > g) g = o.top;
+    }
+  }
+  return g;
+}
+
 const flashEl = document.getElementById('flash');
 function vibrate(ms){ if(!cfg.vib) return; try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
 
 // ======================================================
-// COLISÕES
+// COLISÕES BLINDADAS
 // ======================================================
 const internalCrash = function() {
   if (dead) return;
@@ -1977,9 +1906,6 @@ document.getElementById('openShop').onclick = ()=>{
   if(!checkLoginState()){ alert('Você precisa entrar na sua conta para acessar a loja.'); return; }
   shopSel = charId; renderShop(); openModal('modalShop'); SFX.ui();
 };
-document.getElementById('openQuests').onclick = ()=>{
-  renderQuests(); openModal('modalQuests'); SFX.ui();
-};
 document.getElementById('openCfg').onclick = ()=>{ syncCfgUI(); openModal('modalCfg'); SFX.ui(); };
 document.getElementById('openRank').onclick = ()=>{ openModal('modalRank'); openRanking(); SFX.ui(); };
 document.getElementById('openAcc').onclick = ()=>{ openAccount(); openModal('modalAcc'); SFX.ui(); };
@@ -1991,24 +1917,6 @@ function updateHUD(){
   if(coinsN!==lastCoins){ coinsEl.textContent = coinsN; lastCoins=coinsN; }
   const s = Math.floor(runTimeMs/10); if(s!==lastScore){ scoreDisplayEl.textContent = s; lastScore=s; }
   const danger = stumbleTimer>0 && !dead; if(danger!==lastDanger){ timerBox.classList.toggle('danger', danger); lastDanger=danger; }
-
-  const magBadge = document.getElementById('puMagnet');
-  const magTxt = document.getElementById('puMagnetTimer');
-  if(magnetTime > 0) {
-    magBadge.style.display = 'flex';
-    magTxt.textContent = magnetTime.toFixed(1);
-  } else {
-    magBadge.style.display = 'none';
-  }
-
-  const douBadge = document.getElementById('puDouble');
-  const douTxt = document.getElementById('puDoubleTimer');
-  if(doubleTime > 0) {
-    douBadge.style.display = 'flex';
-    douTxt.textContent = doubleTime.toFixed(1);
-  } else {
-    douBadge.style.display = 'none';
-  }
 }
 function updateBankRow(){
   const eq = CHARS.find(x=>x.id===charId) || CHARS[0];
@@ -2021,7 +1929,7 @@ function updateBankRow(){
 }
 
 // ======================================================
-// SINCRONIZAÇÃO E AUTH
+// SINCRONIZAÇÃO
 // ======================================================
 let loggedUser = null;
 let syncInProgress = false;
@@ -2065,11 +1973,14 @@ async function pullProfileFromAccount(user){
 
     maybeRequireName(remote);
 
+    // [NOME ÚNICO] Auto-reparo: se já tem nome mas não tem reserva, tenta reservar
     if(remote && remote.playerName){
       try {
         const stillFree = await MetroAPI.isNameAvailable(remote.playerName);
-        if(stillFree){ await MetroAPI.reserveName(remote.playerName); }
-      } catch(e) {}
+        if(stillFree){
+          await MetroAPI.reserveName(remote.playerName);
+        }
+      } catch(e) { console.warn('[Nome único] auto-reparo falhou:', e); }
     }
   } catch(e){ console.error('[Sync] pull:', e); }
   syncInProgress = false;
@@ -2103,6 +2014,10 @@ function schedulePush(){
   pushDebounce = setTimeout(()=>pushProfileToAccount(), 800);
 }
 
+// ======================================================
+// AUTH
+// ======================================================
+let isRegisterMode = false;
 function initAuth(){
   if(!MetroAPI) return;
   MetroAPI.auth.onChange(async (user)=>{
@@ -2158,6 +2073,7 @@ authBtn.onclick = async ()=>{
     if(isRegisterMode) await MetroAPI.auth.createUser(email,pass);
     else await MetroAPI.auth.signIn(email,pass);
   } catch(err){
+    console.error(err);
     if(err.code==='auth/email-already-in-use') authError.textContent = 'Este e-mail já está em uso.';
     else if(err.code==='auth/invalid-email') authError.textContent = 'E-mail inválido.';
     else if(err.code==='auth/wrong-password' || err.code==='auth/invalid-credential') authError.textContent = 'Senha incorreta.';
@@ -2182,7 +2098,7 @@ syncNowBtn.onclick = async ()=>{
 };
 
 // ======================================================
-// NOME ÚNICO
+// NOME FIXO / NOME ÚNICO
 // ======================================================
 function openNameModal(locked){
   const modal = document.getElementById('modalName');
@@ -2211,6 +2127,7 @@ function askNameAndSend(scoreMs){
   openNameModal(true);
 }
 
+// [NOME ÚNICO] Feedback em tempo real no input
 let nameCheckTimer = null;
 nameInput.addEventListener('input', ()=>{
   const errEl = document.getElementById('nameError');
@@ -2245,6 +2162,7 @@ nameInput.addEventListener('input', ()=>{
   }, 500);
 });
 
+// [NOME ÚNICO] Salvar com reserva atômica - TRAVA TOTAL
 nameSave.onclick = async ()=>{
   const raw = nameInput.value.trim();
 
@@ -2296,6 +2214,8 @@ nameSave.onclick = async ()=>{
         return;
       }
       
+      // [CORREÇÃO] Se der qualquer outro erro (como rede), NÃO SALVA LOCALMENTE.
+      // Mostra erro para o jogador tentar de novo.
       let errEl = document.getElementById('nameError');
       if (!errEl) {
         errEl = document.createElement('p');
@@ -2304,14 +2224,16 @@ nameSave.onclick = async ()=>{
         nameInput.parentNode.insertBefore(errEl, nameInput.nextSibling);
       }
       errEl.textContent = 'Erro ao salvar. Verifique sua internet e tente novamente.';
-      return;
+      return; // O código PARA AQUI. Não passa para baixo!
     } else {
+      // SUCESSO! O nome foi reservado no banco de dados.
       secureSave(SAVE_KEYS.name, raw);
       try {
         await MetroAPI.sendScore(raw, pendingScore, charId, getRecord());
       } catch(_) {}
     }
   } else {
+    // Se não estiver logado, bloqueia o jogo (não deixa jogar sem conta)
     nameSave.disabled = false;
     nameSave.textContent = oldTxt;
     alert('Você precisa estar logado para definir seu nome.');
@@ -2335,7 +2257,7 @@ nameSave.onclick = async ()=>{
 };
 
 // ======================================================
-// RANKING E LOJA
+// RANKING
 // ======================================================
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 async function openRanking(){
@@ -2351,6 +2273,9 @@ async function openRanking(){
   }).join('');
 }
 
+// ======================================================
+// LOJA
+// ======================================================
 let shopSel = charId;
 function buyChar(id){
   const c = CHARS.find(x=>x.id===id);
@@ -2490,8 +2415,7 @@ addEventListener('keydown', e=>{
 function clearWorld(){
   for(const o of obstacles) scene.remove(o.group);
   for(const c of coins) scene.remove(c.m);
-  for(const p of powerups) scene.remove(p.m);
-  obstacles = []; coins = []; powerups = [];
+  obstacles = []; coins = [];
 }
 function resetRun(){
   running=false; paused=false; ended=false;
@@ -2505,7 +2429,6 @@ function resetRun(){
   speed=START_V; speedK=0; runTimeMs=0; coinsN=0; banked=false; runT=0; dustT=0; windT=0;
   dead=false; deadT=0; counting=false; cdEl.style.display='none'; stopMusic();
   swipeCooldown=0; tracking=false;
-  magnetTime = 0; doubleTime = 0;
   segments.forEach((s,i)=>{ s.position.z = -i*SEG_LEN; });
   resetBuildings();
   nextZ = player.position.z - 45;
@@ -2652,13 +2575,8 @@ function update(dt){
   runTimeMs += dt*1000;
   runT += dt*speed*0.62;
 
-  updateQuestProgress('time', dt * 1000);
-
   stumbleTimer = Math.max(0, stumbleTimer-dt);
   stumbleGrace = Math.max(0, stumbleGrace-dt);
-
-  if(magnetTime > 0) magnetTime = Math.max(0, magnetTime - dt);
-  if(doubleTime > 0) doubleTime = Math.max(0, doubleTime - dt);
 
   const tx = lane*LW;
   player.position.x += (tx - player.position.x)*Math.min(1, dt*14);
@@ -2692,7 +2610,6 @@ function update(dt){
     dustT = sliding ? 0.03 : 0.055;
     if(onGround && Math.random() < PQ+0.2){
       emit(px+rnd(-0.25,0.25), player.position.y+0.08, pz+0.5, rnd(-0.8,0.8), rnd(0.5,1.5), rnd(0.5,2), 0.55, sliding?0.24:0.17, pick(DUST), 2.2);
-      SFX.footstep();
     }
   }
   windT -= dt;
@@ -2705,40 +2622,14 @@ function update(dt){
 
   coinSpin += dt*4;
   const cy = player.position.y + 0.9;
-
-  if(magnetTime > 0) {
-    for(const c of coins) {
-      const dist = Math.hypot(c.x - px, c.z - pz);
-      if(dist < 7.0) {
-        c.x += (px - c.x) * Math.min(1, dt * 8);
-        c.z += (pz - c.z) * Math.min(1, dt * 8);
-        c.m.position.set(c.x, c.y, c.z);
-      }
-    }
-  }
-
   for(let i=coins.length-1;i>=0;i--){
     const c = coins[i]; c.m.rotation.y = coinSpin;
-    if(Math.abs(c.z-pz)<0.8 && Math.abs(c.x-px)<0.75 && Math.abs(c.y-cy)<1.1){
-      const ganho = doubleTime > 0 ? 2 : 1;
-      coinsN += ganho;
-      updateQuestProgress('coins', ganho);
+    if(Math.abs(c.z-pz)<0.7 && Math.abs(c.x-px)<0.65 && Math.abs(c.y-cy)<0.9){
+      coinsN++;
       burst(c.x, c.y, c.z, 8, 2.2, 3, 0.45, 0.16, [0xffe45c,0xffffff,0xffd322], 7);
       scene.remove(c.m); coins.splice(i,1); SFX.coin(); continue;
     }
     if(c.z > pz+14){ scene.remove(c.m); coins.splice(i,1); }
-  }
-
-  for(let i=powerups.length-1;i>=0;i--){
-    const p = powerups[i];
-    p.m.rotation.y += dt * 3;
-    if(Math.abs(p.z-pz)<0.9 && Math.abs(p.x-px)<0.8 && Math.abs(p.y-cy)<1.2){
-      if(p.type === 'magnet') magnetTime = 10.0;
-      if(p.type === 'double') doubleTime = 10.0;
-      burst(p.x, p.y, p.z, 12, 3, 3, 0.5, 0.2, [0xff3b30,0xffd42a,0xffffff], 8);
-      scene.remove(p.m); powerups.splice(i,1); SFX.powerup(); continue;
-    }
-    if(p.z > pz+14){ scene.remove(p.m); powerups.splice(i,1); }
   }
 
   for(let i=obstacles.length-1;i>=0;i--){
@@ -2764,7 +2655,6 @@ function update(dt){
   updateHUD();
 }
 
-// CORREÇÃO DA CÂMERA: Garantindo o acompanhamento suave e contínuo do player
 function updateCamera(dt){
   const px = player.position.x, py = player.position.y, pz = player.position.z;
   camX += (px*0.6 - camX)*Math.min(1,dt*6);
@@ -2776,11 +2666,8 @@ function updateCamera(dt){
   const targetFov = baseFov + fovK*11 + ((live && !onGround) ? 1.5 : 0);
   curFov += (targetFov-curFov)*Math.min(1,dt*4);
   if(Math.abs(camera.fov - curFov) > 0.02){ camera.fov = curFov; camera.updateProjectionMatrix(); }
-  
-  // Posicionamento correto atrelado diretamente ao pz (posição Z do player)
-  camera.position.set(camX+sxk, camY+syk, pz + camBack + fovK*1.5);
-  camera.lookAt(px*0.35, 1.4 + py*0.4, pz - 12);
-
+  camera.position.set(camX+sxk, camY+syk, pz+camBack+fovK*1.5);
+  camera.lookAt(px*0.35, 1.4 + py*0.4, pz-12);
   sun.position.set(px-8, 20, pz+12);
   sun.target.position.set(px, 0, pz);
   sun.target.updateMatrixWorld();
@@ -2841,7 +2728,7 @@ window.addEventListener('beforeunload', ()=>{
 
 showMain();
 
-})();
+})(); // <--- FIM DA BLINDAGEM DO ESCOPO
 </script>
 </body>
 </html>
