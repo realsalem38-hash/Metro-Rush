@@ -124,22 +124,6 @@ button { font-family:inherit; }
 .hud-row .val { font-size:var(--hud-val); font-weight:800; line-height:1.2; color:var(--accent); font-variant-numeric:tabular-nums; }
 .hud-row .val.white { color:#fff; }
 
-/* >>> MOEDA AZUL: flash azul na tela ao coletar */
-#blueFlash { position:absolute; inset:0; background:#3aa0ff; opacity:0; pointer-events:none; z-index:2; transition:opacity .45s; }
-
-/* >>> MOEDA AZUL: toast "+5 moedas" */
-#blueToast {
-  position:absolute; left:50%; top:22%; transform:translate(-50%,-10px) scale(.9);
-  background:linear-gradient(135deg,#2a6bff,#6a3aff);
-  color:#fff; font-weight:900; letter-spacing:1px;
-  font-size:clamp(15px,4.6vw,20px);
-  padding:8px 18px; border-radius:999px;
-  box-shadow:0 8px 26px rgba(60,110,255,.55), 0 0 0 1px rgba(160,200,255,.4) inset;
-  opacity:0; pointer-events:none; z-index:8; white-space:nowrap;
-  transition:opacity .25s, transform .25s;
-}
-#blueToast.show { opacity:1; transform:translate(-50%,0) scale(1); }
-
 #menu {
   position:absolute; inset:0; display:flex; justify-content:center; align-items:center;
   background:rgba(10,20,40,.55); z-index:5;
@@ -299,10 +283,6 @@ input::placeholder { color:rgba(255,255,255,.4); }
 <body>
 
 <div id="flash"></div>
-<!-- >>> MOEDA AZUL -->
-<div id="blueFlash"></div>
-<div id="blueToast">+5 MOEDAS</div>
-<!-- <<< MOEDA AZUL -->
 <div id="countdown"></div>
 
 <div id="hud">
@@ -824,7 +804,7 @@ const M = {
   cape:L(0xc62828), pink:L(0xe88aa0), glass:L(0x9ad8ff,{transparent:true,opacity:0.4,depthWrite:false}),
   glowC:new THREE.MeshBasicMaterial({color:0x58f0ff}), glowR:new THREE.MeshBasicMaterial({color:0xff4444}),
   glowY:new THREE.MeshBasicMaterial({color:0xffe45c}), coin:L(0xffd322,{emissive:0x7a5200}), ramp:L(0xf29b38),
-  // >>> MOEDA AZUL: material da moeda azul (brilha em azul)
+  // >>> MOEDA AZUL
   coinBlue:L(0x4aa8ff,{emissive:0x1a5ac0})
   // <<< MOEDA AZUL
 };
@@ -1410,14 +1390,11 @@ function coinIsSafe(x,z,y){
   }
   return true;
 }
-
-// >>> MOEDA AZUL: adiciona moeda com flag isBlue
 function addCoin(x,z,y,isBlue){
   if(!coinIsSafe(x,z,y)) return false;
   const mat = isBlue ? M.coinBlue : M.coin;
   const m = new THREE.Mesh(coinGeo, mat);
   m.position.set(x,y,z);
-  // Moeda azul é levemente maior
   if(isBlue) m.scale.setScalar(1.25);
   scene.add(m);
   coins.push({m,x,y,z,blue:!!isBlue});
@@ -1426,12 +1403,10 @@ function addCoin(x,z,y,isBlue){
 function coinLine(lane,z0,n,sp,y){
   const x = lane*LW;
   for(let i=0;i<n;i++){
-    // >>> MOEDA AZUL: chance de cada moeda ser azul
     const isBlue = Math.random() < BLUE_COIN_CHANCE;
     addCoin(x, z0-i*sp, y, isBlue);
   }
 }
-// <<< MOEDA AZUL
 
 function patternIsPassable(z0,len,list){
   const step=0.5; const lanesX=[-LW,0,LW];
@@ -1567,28 +1542,6 @@ function bankRun(){
   }
 }
 
-// >>> MOEDA AZUL: feedback visual
-const blueFlashEl = document.getElementById('blueFlash');
-const blueToastEl = document.getElementById('blueToast');
-let blueToastTimer = null;
-function showBlueCoinFeedback(){
-  // Flash azul rápido
-  blueFlashEl.style.transition = 'none';
-  blueFlashEl.style.opacity = '0.35';
-  requestAnimationFrame(()=>{
-    blueFlashEl.style.transition = 'opacity .45s';
-    blueFlashEl.style.opacity = '0';
-  });
-  // Toast "+5 MOEDAS"
-  blueToastEl.textContent = '+' + BLUE_COIN_BONUS + ' MOEDAS';
-  blueToastEl.classList.add('show');
-  if(blueToastTimer) clearTimeout(blueToastTimer);
-  blueToastTimer = setTimeout(()=> blueToastEl.classList.remove('show'), 900);
-  // Vibração curta
-  vibrate(40);
-}
-// <<< MOEDA AZUL
-
 // ======================================================
 // ÁUDIO
 // ======================================================
@@ -1650,13 +1603,11 @@ const SFX = {
   jump(){ playTone({f1:340,f2:720,dur:0.18,type:'triangle',vol:0.07,attack:0.006}); playTone({f1:680,f2:1440,dur:0.12,type:'sine',vol:0.03,attack:0.004,delay:0.03}); },
   slide(){ playNoise({f1:1600,f2:260,dur:0.32,filter:'lowpass',vol:0.09,attack:0.01}); playTone({f1:220,f2:110,dur:0.28,type:'sawtooth',vol:0.045,attack:0.01}); },
   coin(){ playTone({f1:1046,f2:1046,dur:0.07,type:'square',vol:0.045,attack:0.002}); playTone({f1:1568,f2:1568,dur:0.1,type:'square',vol:0.04,attack:0.002,delay:0.06}); },
-  // >>> MOEDA AZUL: som especial ascendente (mais brilhante que o normal)
   blueCoin(){
     playTone({f1:880,f2:1320,dur:0.09,type:'square',vol:0.055,attack:0.002});
     playTone({f1:1320,f2:1760,dur:0.1,type:'square',vol:0.05,attack:0.002,delay:0.07});
     playTone({f1:1760,f2:2340,dur:0.14,type:'sine',vol:0.04,attack:0.002,delay:0.14});
   },
-  // <<< MOEDA AZUL
   stumble(){ playTone({f1:160,f2:90,dur:0.22,type:'sawtooth',vol:0.09,attack:0.005}); playNoise({f1:900,f2:300,dur:0.2,filter:'lowpass',vol:0.06,attack:0.005}); },
   crash(){ playNoise({f1:400,f2:80,dur:0.5,filter:'lowpass',vol:0.14,attack:0.005}); playTone({f1:320,f2:60,dur:0.45,type:'sawtooth',vol:0.1,attack:0.005}); playTone({f1:90,f2:40,dur:0.35,type:'sine',vol:0.16,attack:0.004}); playNoise({f1:3500,f2:800,dur:0.3,filter:'highpass',vol:0.06,attack:0.002,delay:0.03}); },
   gameover(){ playTone({f1:440,f2:220,dur:0.35,type:'triangle',vol:0.06,delay:0.2}); playTone({f1:330,f2:165,dur:0.4,type:'triangle',vol:0.06,delay:0.45}); playTone({f1:220,f2:110,dur:0.6,type:'triangle',vol:0.06,delay:0.75}); },
@@ -2383,11 +2334,6 @@ function resetRun(){
   camera.lookAt(0,1.4,player.position.z-12);
   blob.position.set(0,0.1,3); blob.scale.set(1,1,1);
   lastTimer = lastCoins = lastScore = -1; lastDanger = null; timerBox.classList.remove('danger');
-  // >>> MOEDA AZUL: limpa feedbacks visuais
-  blueFlashEl.style.opacity = '0';
-  blueToastEl.classList.remove('show');
-  if(blueToastTimer){ clearTimeout(blueToastTimer); blueToastTimer = null; }
-  // <<< MOEDA AZUL
 }
 
 function startGame(){
@@ -2553,18 +2499,16 @@ function update(dt){
   for(let i=coins.length-1;i>=0;i--){
     const c = coins[i]; c.m.rotation.y = coinSpin;
     if(Math.abs(c.z-pz)<0.7 && Math.abs(c.x-px)<0.65 && Math.abs(c.y-cy)<0.9){
-      // >>> MOEDA AZUL: dá +5 moedas e faz feedback especial
       if(c.blue){
         coinsN += BLUE_COIN_BONUS;
-        burst(c.x, c.y, c.z, 18, 3.2, 4, 0.6, 0.22, [0x4aa8ff,0x9ad8ff,0xffffff], 6);
+        burst(c.x, c.y, c.z, 14, 2.8, 3.5, 0.55, 0.2, [0x4aa8ff,0x9ad8ff,0xffffff], 6);
         SFX.blueCoin();
-        showBlueCoinFeedback();
+        vibrate(30);
       } else {
         coinsN++;
         burst(c.x, c.y, c.z, 8, 2.2, 3, 0.45, 0.16, [0xffe45c,0xffffff,0xffd322], 7);
         SFX.coin();
       }
-      // <<< MOEDA AZUL
       scene.remove(c.m); coins.splice(i,1); continue;
     }
     if(c.z > pz+14){ scene.remove(c.m); coins.splice(i,1); }
